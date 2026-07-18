@@ -29,6 +29,12 @@ function TopBar() {
               Mesas y barra
             </Link>
             <Link
+              to="/admin/productos"
+              className="rounded-lg bg-slate-700 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-600"
+            >
+              Productos
+            </Link>
+            <Link
               to="/admin/empleados"
               className="rounded-lg bg-slate-700 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-600"
             >

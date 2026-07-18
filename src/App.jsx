@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import FloorMap from './pages/FloorMap'
 import AdminEmployees from './pages/AdminEmployees'
 import AdminTables from './pages/AdminTables'
+import AdminProducts from './pages/AdminProducts'
 
 // Protege una ruta: exige sesión, y opcionalmente un rol específico.
 function RequireAuth({ children, rol }) {
@@ -40,6 +41,14 @@ function App() {
             element={
               <RequireAuth rol="admin">
                 <AdminTables />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/productos"
+            element={
+              <RequireAuth rol="admin">
+                <AdminProducts />
               </RequireAuth>
             }
           />
