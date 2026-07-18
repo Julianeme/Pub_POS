@@ -19,16 +19,14 @@ export async function fetchLayout() {
 
 // ---- Mesas ----
 
+// Abre la mesa y crea su primera sub-cuenta ("Cliente 1")
 export async function openTable(id) {
   const { error } = await supabase.from('tables').update({ estado: 'ocupada' }).eq('id', id)
   if (error) throw new Error('No se pudo abrir la mesa')
-}
-
-// Provisional: liberar manualmente. En la fase de cobro esto pasara a ser
-// automatico cuando todas las sub-cuentas esten pagadas.
-export async function freeTable(id) {
-  const { error } = await supabase.from('tables').update({ estado: 'libre' }).eq('id', id)
-  if (error) throw new Error('No se pudo liberar la mesa')
+  const { error: e2 } = await supabase
+    .from('table_seats')
+    .insert({ table_id: id, nombre: 'Cliente 1' })
+  if (e2) throw new Error('No se pudo crear la sub-cuenta inicial')
 }
 
 export async function addTable(floorId, nombre, orden) {
@@ -59,14 +57,6 @@ export async function renameBarSeatClient(id, nombreCliente) {
     .update({ nombre_cliente: nombreCliente })
     .eq('id', id)
   if (error) throw new Error('No se pudo cambiar el nombre')
-}
-
-export async function freeBarSeat(id) {
-  const { error } = await supabase
-    .from('bar_seats')
-    .update({ estado: 'libre', nombre_cliente: null })
-    .eq('id', id)
-  if (error) throw new Error('No se pudo liberar el puesto')
 }
 
 export async function addBarSeat(nombre, orden) {

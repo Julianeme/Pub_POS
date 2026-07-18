@@ -5,6 +5,7 @@ import FloorMap from './pages/FloorMap'
 import AdminEmployees from './pages/AdminEmployees'
 import AdminTables from './pages/AdminTables'
 import AdminProducts from './pages/AdminProducts'
+import OrderScreen from './pages/OrderScreen'
 
 // Protege una ruta: exige sesión, y opcionalmente un rol específico.
 function RequireAuth({ children, rol }) {
@@ -25,6 +26,14 @@ function App() {
             element={
               <RequireAuth>
                 <FloorMap />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/pedido/:tipo/:id"
+            element={
+              <RequireAuth>
+                <OrderScreen />
               </RequireAuth>
             }
           />
