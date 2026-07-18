@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { checkConnection } from '../lib/supabase'
+import { useEmployee } from '../context/EmployeeContext'
+
+const ROL_LABELS = { admin: 'Administrador', mesero: 'Mesero', cajero: 'Cajero' }
 
 function Home() {
+  const { employee, logout } = useEmployee()
+  const navigate = useNavigate()
+
   const [status, setStatus] = useState({ state: 'loading', message: 'Conectando...' })
 
   useEffect(() => {
@@ -24,17 +31,42 @@ function Home() {
     error: 'bg-red-500',
   }
 
-  return (
-    <main className="min-h-screen bg-slate-900 flex flex-col items-center justify-center gap-6 p-6">
-      <h1 className="text-4xl font-bold text-white">POS Bar</h1>
-      <p className="text-slate-400">Sistema de punto de venta</p>
+  const handleLogout = () => {
+    logout()
+    navigate('/login', { replace: true })
+  }
 
-      <div className="flex items-center gap-3 rounded-xl bg-slate-800 px-6 py-4">
-        <span className={`h-3 w-3 rounded-full ${colors[status.state]}`} />
-        <span className="text-lg text-white">{status.message}</span>
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-slate-900 p-6">
+      <h1 className="text-4xl font-bold text-white">POS Bar</h1>
+
+      <div className="text-center">
+        <p className="text-xl text-white">Hola, {employee.nombre}</p>
+        <p className="text-slate-400">{ROL_LABELS[employee.rol] ?? employee.rol}</p>
       </div>
 
-      <p className="text-sm text-slate-500">Supabase · Fase 0</p>
+      <div className="flex w-full max-w-xs flex-col gap-3">
+        {employee.rol === 'admin' && (
+          <Link
+            to="/admin/empleados"
+            className="rounded-xl bg-blue-600 py-4 text-center text-lg font-semibold text-white hover:bg-blue-500"
+          >
+            Empleados
+          </Link>
+        )}
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="rounded-xl bg-slate-700 py-4 text-lg font-semibold text-white hover:bg-slate-600"
+        >
+          Cerrar sesión
+        </button>
+      </div>
+
+      <div className="flex items-center gap-2 text-sm text-slate-500">
+        <span className={`h-2 w-2 rounded-full ${colors[status.state]}`} />
+        Supabase: {status.message}
+      </div>
     </main>
   )
 }
