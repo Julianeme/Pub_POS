@@ -1,8 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { EmployeeProvider, useEmployee } from './context/EmployeeContext'
 import Login from './pages/Login'
-import Home from './pages/Home'
+import FloorMap from './pages/FloorMap'
 import AdminEmployees from './pages/AdminEmployees'
+import AdminTables from './pages/AdminTables'
 
 // Protege una ruta: exige sesión, y opcionalmente un rol específico.
 function RequireAuth({ children, rol }) {
@@ -22,7 +23,7 @@ function App() {
             path="/"
             element={
               <RequireAuth>
-                <Home />
+                <FloorMap />
               </RequireAuth>
             }
           />
@@ -31,6 +32,14 @@ function App() {
             element={
               <RequireAuth rol="admin">
                 <AdminEmployees />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/mesas"
+            element={
+              <RequireAuth rol="admin">
+                <AdminTables />
               </RequireAuth>
             }
           />
