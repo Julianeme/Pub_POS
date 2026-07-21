@@ -92,6 +92,20 @@ export async function voidOrderItem(id) {
   if (error) throw new Error('No se pudo quitar el item')
 }
 
+// Corrige la cantidad de un item mientras la cuenta sigue abierta (ej. se
+// pidieron 6 cervezas y eran 5). No es una anulacion: es la misma fila,
+// mismo precio_unitario y mismo empleado que la registro; solo cambia la
+// cantidad. Si baja a 0, se trata como quitar el item (anulado).
+export async function updateOrderItemQuantity(id, cantidad) {
+  if (cantidad < 1) return voidOrderItem(id)
+  const { error } = await supabase
+    .from('order_items')
+    .update({ cantidad })
+    .eq('id', id)
+    .eq('estado', 'activo')
+  if (error) throw new Error('No se pudo actualizar la cantidad')
+}
+
 // ---- sub-cuentas de mesa ----
 
 export async function addTableSeat(tableId, nombre) {

@@ -1,7 +1,9 @@
 import { money } from '../lib/format'
 
 // Tarjeta de una sub-cuenta (o del puesto de barra): items, total y acciones.
-function SeatCard({ seat, onAddProduct, onVoidItem, onRename, busy }) {
+// onChangeQty(item, nuevaCantidad) ajusta de a 1 en 1 sin borrar el item;
+// onVoidItem(item) lo quita por completo (anula, conserva historial).
+function SeatCard({ seat, onAddProduct, onChangeQty, onVoidItem, onRename, busy }) {
   return (
     <section className="rounded-2xl bg-slate-800 p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
@@ -23,22 +25,46 @@ function SeatCard({ seat, onAddProduct, onVoidItem, onRename, busy }) {
       ) : (
         <ul className="mb-3 space-y-2">
           {seat.items.map((item) => (
-            <li key={item.id} className="flex items-center gap-2">
+            <li key={item.id} className="flex items-center gap-3">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-white">
-                  {item.cantidad} × {item.nombre_producto}
-                </p>
+                <p className="truncate text-white">{item.nombre_producto}</p>
                 <p className="text-xs text-slate-500">{money(item.precio_unitario)} c/u</p>
               </div>
-              <span className="font-semibold text-white">
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => onChangeQty(item, item.cantidad - 1)}
+                  disabled={busy}
+                  aria-label={`Quitar una unidad de ${item.nombre_producto}`}
+                  className="h-8 w-8 rounded-lg bg-slate-700 text-lg font-bold text-white hover:bg-slate-600 disabled:opacity-40"
+                >
+                  −
+                </button>
+                <span className="w-6 text-center font-semibold text-white">
+                  {item.cantidad}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onChangeQty(item, item.cantidad + 1)}
+                  disabled={busy}
+                  aria-label={`Agregar una unidad de ${item.nombre_producto}`}
+                  className="h-8 w-8 rounded-lg bg-slate-700 text-lg font-bold text-white hover:bg-slate-600 disabled:opacity-40"
+                >
+                  +
+                </button>
+              </div>
+
+              <span className="w-20 shrink-0 text-right font-semibold text-white">
                 {money(item.cantidad * item.precio_unitario)}
               </span>
+
               <button
                 type="button"
                 onClick={() => onVoidItem(item)}
                 disabled={busy}
-                aria-label={`Quitar ${item.nombre_producto}`}
-                className="h-8 w-8 rounded-lg bg-red-900/60 text-red-200 hover:bg-red-800 disabled:opacity-40"
+                aria-label={`Quitar ${item.nombre_producto} de la cuenta`}
+                className="h-8 w-8 shrink-0 rounded-lg bg-red-900/60 text-red-200 hover:bg-red-800 disabled:opacity-40"
               >
                 ×
               </button>

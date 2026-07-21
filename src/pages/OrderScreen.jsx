@@ -8,6 +8,7 @@ import { money } from '../lib/format'
 import {
   addOrderItem,
   voidOrderItem,
+  updateOrderItemQuantity,
   addTableSeat,
   renameTableSeat,
   cancelTable,
@@ -65,6 +66,12 @@ function OrderScreen() {
     if (!window.confirm(`¿Quitar ${item.cantidad} × ${item.nombre_producto}?`)) return
     run(() => voidOrderItem(item.id))
   }
+
+  // Ajuste de a 1 en 1 (ej. 6 -> 5 cervezas) sin pasar por quitar+agregar.
+  // Bajar a 0 equivale a quitar el item; no pide confirmacion extra porque
+  // el propio boton "-" ya es una accion deliberada.
+  const handleChangeQty = (item, nuevaCantidad) =>
+    run(() => updateOrderItemQuantity(item.id, nuevaCantidad))
 
   // Siguiente "Cliente N" a partir de los nombres existentes
   const handleAddSeat = () => {
@@ -156,6 +163,7 @@ function OrderScreen() {
                     setActionError('')
                     setPickerSeat(seat)
                   }}
+                  onChangeQty={handleChangeQty}
                   onVoidItem={handleVoidItem}
                   onRename={() => openRename(seat)}
                 />
