@@ -7,7 +7,7 @@ import SeatCard from '../components/SeatCard'
 import PaymentModal from '../components/PaymentModal'
 import { money } from '../lib/format'
 import {
-  addOrderItem,
+  addOrderItems,
   voidOrderItem,
   updateOrderItemQuantity,
   addTableSeat,
@@ -56,13 +56,12 @@ function OrderScreen() {
     }
   }
 
-  const handleAddProduct = (product, cantidad) =>
+  const handleAddProducts = (items) =>
     run(() =>
-      addOrderItem({
+      addOrderItems({
         tableSeatId: tipo === 'mesa' ? pickerSeat.id : null,
         barSeatId: tipo === 'barra' ? pickerSeat.id : null,
-        product,
-        cantidad,
+        items,
         empleadoId: employee.id,
       })
     )
@@ -271,7 +270,7 @@ function OrderScreen() {
         <ProductPicker
           title={`Agregar a ${pickerSeat.nombre}`}
           busy={busy}
-          onAdd={handleAddProduct}
+          onAdd={handleAddProducts}
           onClose={() => setPickerSeat(null)}
         />
       )}

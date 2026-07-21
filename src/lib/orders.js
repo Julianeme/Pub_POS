@@ -70,17 +70,23 @@ export async function fetchBarSeatOrder(seatId) {
 
 // ---- items ----
 
-export async function addOrderItem({ tableSeatId = null, barSeatId = null, product, cantidad, empleadoId }) {
-  const { error } = await supabase.from('order_items').insert({
-    table_seat_id: tableSeatId,
-    bar_seat_id: barSeatId,
-    product_id: product.id,
-    nombre_producto: product.nombre,
-    precio_unitario: product.precio_publico,
-    cantidad,
-    empleado_id: empleadoId,
-  })
-  if (error) throw new Error('No se pudo agregar el producto')
+// Agrega varios productos al pedido en una sola operacion.
+// items: [{ product, cantidad }, ...]
+export async function addOrderItems({ tableSeatId = null, barSeatId = null, items, empleadoId }) {
+  const rows = items
+    .filter((it) => it.cantidad > 0)
+    .map(({ product, cantidad }) => ({
+      table_seat_id: tableSeatId,
+      bar_seat_id: barSeatId,
+      product_id: product.id,
+      nombre_producto: product.nombre,
+      precio_unitario: product.precio_publico,
+      cantidad,
+      empleado_id: empleadoId,
+    }))
+  if (rows.length === 0) return
+  const { error } = await supabase.from('order_items').insert(rows)
+  if (error) throw new Error('No se pudieron agregar los productos')
 }
 
 // Anula (no borra): conserva historial para auditoria y cierre de caja
