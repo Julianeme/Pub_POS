@@ -1,13 +1,19 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import TopBar from '../components/TopBar'
+import ExpenseModal from '../components/ExpenseModal'
+import CourtesyModal from '../components/CourtesyModal'
 import { useBarLayout } from '../hooks/useBarLayout'
+import { useEmployee } from '../context/EmployeeContext'
 import { openTable, occupyBarSeat } from '../lib/layout'
+import { addIceExpense } from '../lib/expenses'
+import { addCourtesy } from '../lib/courtesies'
 
 // Pantalla principal: mapa de pisos con mesas y barra con puestos.
 // Verde = libre, rojo = ocupada/o. Tocar algo ocupado abre su pedido.
 function FloorMap() {
   const { floors, barSeats, loading, error, refresh } = useBarLayout()
+  const { employee } = useEmployee()
   const navigate = useNavigate()
 
   // selected: null | { type: 'mesa', item } | { type: 'puesto', item } (solo libres)
@@ -15,6 +21,42 @@ function FloorMap() {
   const [clientName, setClientName] = useState('')
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState('')
+
+  // Modales de acciones fijas: null | 'hielo' | 'cortesia'
+  const [opModal, setOpModal] = useState(null)
+  const [opBusy, setOpBusy] = useState(false)
+  const [toast, setToast] = useState('')
+
+  const showToast = (msg) => {
+    setToast(msg)
+    setTimeout(() => setToast(''), 3000)
+  }
+
+  const handleIce = async (cantidad, costoUnitario) => {
+    setOpBusy(true)
+    try {
+      await addIceExpense({ cantidad, costoUnitario, empleadoId: employee.id })
+      setOpModal(null)
+      showToast('Compra de hielo registrada')
+    } catch (err) {
+      setActionError(err.message)
+    } finally {
+      setOpBusy(false)
+    }
+  }
+
+  const handleCourtesy = async (productId, cantidad) => {
+    setOpBusy(true)
+    try {
+      await addCourtesy({ productId, cantidad, empleadoId: employee.id })
+      setOpModal(null)
+      showToast('Cortesia registrada')
+    } catch (err) {
+      setActionError(err.message)
+    } finally {
+      setOpBusy(false)
+    }
+  }
 
   const handleMesa = (mesa) => {
     if (mesa.estado === 'ocupada') {
@@ -79,9 +121,36 @@ function FloorMap() {
     <div className="min-h-screen bg-slate-900">
       <TopBar />
 
+      {/* Acciones fijas disponibles durante el servicio */}
+      <div className="sticky top-0 z-10 flex gap-3 bg-slate-900/95 px-4 py-3 backdrop-blur">
+        <button
+          type="button"
+          onClick={() => {
+            setActionError('')
+            setOpModal('hielo')
+          }}
+          className="flex-1 rounded-xl bg-cyan-700 py-3 font-semibold text-white hover:bg-cyan-600"
+        >
+          🧊 Comprar hielo
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setActionError('')
+            setOpModal('cortesia')
+          }}
+          className="flex-1 rounded-xl bg-purple-700 py-3 font-semibold text-white hover:bg-purple-600"
+        >
+          🎁 Regalar cortesia
+        </button>
+      </div>
+
       <main className="mx-auto max-w-5xl space-y-8 p-4">
         {loading && <p className="text-slate-400">Cargando mapa...</p>}
         {error && <p className="font-medium text-red-400">{error}</p>}
+        {actionError && !selected && !opModal && (
+          <p className="font-medium text-red-400">{actionError}</p>
+        )}
 
         {floors.map((floor) => (
           <section key={floor.id}>
@@ -194,6 +263,23 @@ function FloorMap() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Comprar hielo */}
+      {opModal === 'hielo' && (
+        <ExpenseModal onSave={handleIce} onClose={() => setOpModal(null)} busy={opBusy} />
+      )}
+
+      {/* Regalar cortesia */}
+      {opModal === 'cortesia' && (
+        <CourtesyModal onSave={handleCourtesy} onClose={() => setOpModal(null)} busy={opBusy} />
+      )}
+
+      {/* Aviso temporal de exito */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 z-30 -translate-x-1/2 rounded-full bg-green-600 px-6 py-3 font-semibold text-white shadow-lg">
+          {toast}
         </div>
       )}
     </div>
