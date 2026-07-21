@@ -4,6 +4,7 @@ import { useOrder } from '../hooks/useOrder'
 import { useEmployee } from '../context/EmployeeContext'
 import ProductPicker from '../components/ProductPicker'
 import SeatCard from '../components/SeatCard'
+import PaymentModal from '../components/PaymentModal'
 import { money } from '../lib/format'
 import {
   addOrderItem,
@@ -13,7 +14,9 @@ import {
   renameTableSeat,
   cancelTable,
   cancelBarSeat,
+  fetchTableOrder,
 } from '../lib/orders'
+import { payTableSeat, payTable, payBarSeat } from '../lib/payments'
 import { renameBarSeatClient } from '../lib/layout'
 
 // Pantalla de pedido de una mesa (con sub-cuentas) o un puesto de barra.
@@ -28,6 +31,8 @@ function OrderScreen() {
   const [renameSeat, setRenameSeat] = useState(null) // sub-cuenta en renombre
   const [renameValue, setRenameValue] = useState('')
   const [confirmFree, setConfirmFree] = useState(false)
+  // payTarget: null | { scope: 'seat'|'mesa', id, titulo, monto }
+  const [payTarget, setPayTarget] = useState(null)
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState('')
 
@@ -107,6 +112,51 @@ function OrderScreen() {
       navigate('/', { replace: true })
     })
 
+  // ---- Cobro ----
+
+  const openPaySeat = (seat) => {
+    setActionError('')
+    setPayTarget({ scope: 'seat', id: seat.id, titulo: `Cobrar ${seat.nombre}`, monto: seat.total })
+  }
+
+  const openPayTable = () => {
+    setActionError('')
+    setPayTarget({ scope: 'mesa', id: order.id, titulo: 'Cobrar toda la mesa', monto: order.total })
+  }
+
+  // Ejecuta el cobro segun el destino y navega al mapa si la mesa/puesto
+  // quedo libre (barra siempre se libera; mesa solo cuando no quedan
+  // sub-cuentas abiertas).
+  const executePay = async (metodo) => {
+    setBusy(true)
+    setActionError('')
+    try {
+      if (tipo === 'barra') {
+        await payBarSeat(order.id, metodo, employee.id)
+        navigate('/', { replace: true })
+        return
+      }
+      if (payTarget.scope === 'mesa') {
+        await payTable(order.id, metodo, employee.id)
+        navigate('/', { replace: true })
+        return
+      }
+      // Cobro de una sub-cuenta: puede o no ser la ultima
+      await payTableSeat(payTarget.id, metodo, employee.id)
+      const fresh = await fetchTableOrder(order.id)
+      if (fresh.estado === 'libre') {
+        navigate('/', { replace: true })
+        return
+      }
+      setPayTarget(null)
+      await refresh()
+    } catch (err) {
+      setActionError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const isFree = order && (order.estado === 'libre' || (tipo === 'barra' && order.seats.length === 0))
 
   return (
@@ -136,7 +186,7 @@ function OrderScreen() {
       <main className="mx-auto max-w-3xl space-y-4 p-4">
         {loading && <p className="text-slate-400">Cargando pedido...</p>}
         {error && <p className="font-medium text-red-400">{error}</p>}
-        {actionError && !pickerSeat && !renameSeat && !confirmFree && (
+        {actionError && !pickerSeat && !renameSeat && !confirmFree && !payTarget && (
           <p className="font-medium text-red-400">{actionError}</p>
         )}
 
@@ -166,6 +216,7 @@ function OrderScreen() {
                   onChangeQty={handleChangeQty}
                   onVoidItem={handleVoidItem}
                   onRename={() => openRename(seat)}
+                  onPay={() => openPaySeat(seat)}
                 />
               ))}
             </div>
@@ -182,9 +233,21 @@ function OrderScreen() {
             )}
 
             {tipo === 'mesa' && order.seats.length > 1 && (
-              <div className="flex items-center justify-between rounded-2xl bg-slate-800 px-5 py-4">
-                <p className="font-semibold text-slate-300">Total de la mesa</p>
-                <p className="text-xl font-bold text-green-400">{money(order.total)}</p>
+              <div className="space-y-3 rounded-2xl bg-slate-800 px-5 py-4">
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-slate-300">Total de la mesa</p>
+                  <p className="text-xl font-bold text-green-400">{money(order.total)}</p>
+                </div>
+                {order.total > 0 && (
+                  <button
+                    type="button"
+                    onClick={openPayTable}
+                    disabled={busy}
+                    className="w-full rounded-xl bg-green-600 py-3 font-semibold text-white hover:bg-green-500 disabled:opacity-50"
+                  >
+                    Cobrar toda la mesa de una vez
+                  </button>
+                )}
               </div>
             )}
 
@@ -197,7 +260,7 @@ function OrderScreen() {
               disabled={busy}
               className="w-full rounded-2xl bg-red-900/40 py-3 font-semibold text-red-300 hover:bg-red-900/70 disabled:opacity-50"
             >
-              Liberar {tipo === 'mesa' ? 'mesa' : 'puesto'} sin cobrar (anula el consumo)
+              Liberar {tipo === 'mesa' ? 'mesa' : 'puesto'} sin cobrar (cortesia / error)
             </button>
           </>
         )}
@@ -254,8 +317,8 @@ function OrderScreen() {
           <div className="w-full max-w-sm space-y-4 rounded-2xl bg-slate-800 p-6">
             <h2 className="text-xl font-bold text-white">¿Liberar sin cobrar?</h2>
             <p className="text-slate-300">
-              Se anulara todo el consumo activo ({money(order.total)}). Esta opcion es
-              provisional hasta que exista la pantalla de cobro.
+              Se anulara todo el consumo activo ({money(order.total)}) y {tipo === 'mesa' ? 'la mesa' : 'el puesto'}{' '}
+              quedara libre sin registrar cobro. Usar solo para cortesias o errores.
             </p>
             {actionError && <p className="font-medium text-red-400">{actionError}</p>}
             <div className="flex gap-3">
@@ -277,6 +340,18 @@ function OrderScreen() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Cobro */}
+      {payTarget && (
+        <PaymentModal
+          titulo={payTarget.titulo}
+          monto={payTarget.monto}
+          busy={busy}
+          error={actionError}
+          onPay={executePay}
+          onClose={() => setPayTarget(null)}
+        />
       )}
     </div>
   )

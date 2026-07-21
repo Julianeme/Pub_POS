@@ -2,8 +2,9 @@ import { money } from '../lib/format'
 
 // Tarjeta de una sub-cuenta (o del puesto de barra): items, total y acciones.
 // onChangeQty(item, nuevaCantidad) ajusta de a 1 en 1 sin borrar el item;
-// onVoidItem(item) lo quita por completo (anula, conserva historial).
-function SeatCard({ seat, onAddProduct, onChangeQty, onVoidItem, onRename, busy }) {
+// onVoidItem(item) lo quita por completo (anula, conserva historial);
+// onPay() abre el cobro de esta sub-cuenta (opcional).
+function SeatCard({ seat, onAddProduct, onChangeQty, onVoidItem, onRename, onPay, busy }) {
   return (
     <section className="rounded-2xl bg-slate-800 p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
@@ -84,6 +85,17 @@ function SeatCard({ seat, onAddProduct, onChangeQty, onVoidItem, onRename, busy 
         </button>
         <p className="text-lg font-bold text-white">{money(seat.total)}</p>
       </div>
+
+      {onPay && seat.total > 0 && (
+        <button
+          type="button"
+          onClick={onPay}
+          disabled={busy}
+          className="mt-3 w-full rounded-xl bg-green-600 py-3 font-semibold text-white hover:bg-green-500 disabled:opacity-50"
+        >
+          Cobrar {seat.nombre}
+        </button>
+      )}
     </section>
   )
 }
