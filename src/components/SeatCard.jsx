@@ -1,4 +1,5 @@
 import { money } from '../lib/format'
+import { lineTotal, lineOriginal } from '../lib/orders'
 
 // Muestra el motivo de una cortesia (con detalle si el motivo es "Otro").
 function motivoTexto(c) {
@@ -49,7 +50,14 @@ function SeatCard({ seat, onAddProduct, onChangeQty, onVoidItem, onRename, onPay
           {seat.items.map((item) => (
             <li key={item.id} className="flex items-center gap-3">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-white">{item.nombre_producto}</p>
+                <p className="truncate text-white">
+                  {item.nombre_producto}
+                  {item.promo_tipo === '2x1' && (
+                    <span className="ml-2 rounded bg-amber-500 px-1.5 py-0.5 text-xs font-bold text-slate-900">
+                      2x1
+                    </span>
+                  )}
+                </p>
                 <p className="text-xs text-slate-500">{money(item.precio_unitario)} c/u</p>
               </div>
 
@@ -77,8 +85,19 @@ function SeatCard({ seat, onAddProduct, onChangeQty, onVoidItem, onRename, onPay
                 </button>
               </div>
 
-              <span className="w-20 shrink-0 text-right font-semibold text-white">
-                {money(item.cantidad * item.precio_unitario)}
+              <span className="w-24 shrink-0 text-right">
+                {item.promo_tipo === '2x1' ? (
+                  <>
+                    <span className="block text-xs text-slate-500 line-through">
+                      {money(lineOriginal(item))}
+                    </span>
+                    <span className="block font-semibold text-amber-400">
+                      {money(lineTotal(item))}
+                    </span>
+                  </>
+                ) : (
+                  <span className="font-semibold text-white">{money(lineTotal(item))}</span>
+                )}
               </span>
 
               <button

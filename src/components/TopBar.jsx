@@ -41,6 +41,12 @@ function TopBar() {
               Motivos
             </Link>
             <Link
+              to="/admin/promociones"
+              className="rounded-lg bg-slate-700 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-600"
+            >
+              Promos
+            </Link>
+            <Link
               to="/admin/empleados"
               className="rounded-lg bg-slate-700 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-600"
             >

@@ -20,6 +20,7 @@ import {
 } from '../lib/orders'
 import { payTableSeat, payTable, payBarSeat } from '../lib/payments'
 import { renameBarSeatClient } from '../lib/layout'
+import { listActivePromotions, activePromoForProduct } from '../lib/promotions'
 
 // Pantalla de pedido de una mesa (con sub-cuentas) o un puesto de barra.
 // Ruta: /pedido/mesa/:id  |  /pedido/barra/:id
@@ -62,14 +63,26 @@ function OrderScreen() {
   }
 
   const handleAddProducts = (items) =>
-    run(() =>
-      addOrderItems({
+    run(async () => {
+      // Evalua promos activas AHORA y "congela" la promo en cada item
+      const promos = await listActivePromotions()
+      const now = new Date()
+      const enriched = items.map(({ product, cantidad }) => {
+        const promo = activePromoForProduct(promos, product.id, now)
+        return {
+          product,
+          cantidad,
+          promoTipo: promo?.tipo ?? null,
+          promoNombre: promo?.nombre ?? null,
+        }
+      })
+      await addOrderItems({
         tableSeatId: tipo === 'mesa' ? pickerSeat.id : null,
         barSeatId: tipo === 'barra' ? pickerSeat.id : null,
-        items,
+        items: enriched,
         empleadoId: employee.id,
       })
-    )
+    })
 
   const handleVoidItem = (item) => {
     if (!window.confirm(`¿Quitar ${item.cantidad} × ${item.nombre_producto}?`)) return

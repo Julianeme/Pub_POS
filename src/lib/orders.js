@@ -4,10 +4,23 @@ import { supabase } from './supabase'
 
 const activeItems = (items) => (items ?? []).filter((i) => i.estado === 'activo')
 
-const itemsTotal = (items) =>
-  items.reduce((sum, i) => sum + i.cantidad * Number(i.precio_unitario), 0)
+// Precio original de la linea (sin promo)
+export const lineOriginal = (item) => item.cantidad * Number(item.precio_unitario)
 
-const ITEM_FIELDS = 'id, nombre_producto, precio_unitario, cantidad, estado, created_at'
+// Precio efectivo de la linea aplicando la promo congelada al pedir.
+// 2x1: se cobra ceil(cantidad / 2) unidades. Debe coincidir con la regla
+// del servidor en pay_table_seat / pay_bar_seat (008_promotions.sql).
+export const lineTotal = (item) => {
+  if (item.promo_tipo === '2x1') {
+    return Math.ceil(item.cantidad / 2) * Number(item.precio_unitario)
+  }
+  return lineOriginal(item)
+}
+
+const itemsTotal = (items) => items.reduce((sum, i) => sum + lineTotal(i), 0)
+
+const ITEM_FIELDS =
+  'id, nombre_producto, precio_unitario, cantidad, estado, promo_tipo, promo_nombre, created_at'
 const COURTESY_FIELDS = 'id, nombre_producto, cantidad, motivo, motivo_detalle, created_at'
 
 const sortByCreated = (arr) =>
@@ -87,13 +100,15 @@ export async function fetchBarSeatOrder(seatId) {
 export async function addOrderItems({ tableSeatId = null, barSeatId = null, items, empleadoId }) {
   const rows = items
     .filter((it) => it.cantidad > 0)
-    .map(({ product, cantidad }) => ({
+    .map(({ product, cantidad, promoTipo = null, promoNombre = null }) => ({
       table_seat_id: tableSeatId,
       bar_seat_id: barSeatId,
       product_id: product.id,
       nombre_producto: product.nombre,
       precio_unitario: product.precio_publico,
       cantidad,
+      promo_tipo: promoTipo,
+      promo_nombre: promoNombre,
       empleado_id: empleadoId,
     }))
   if (rows.length === 0) return

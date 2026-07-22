@@ -6,6 +6,7 @@ import AdminEmployees from './pages/AdminEmployees'
 import AdminTables from './pages/AdminTables'
 import AdminProducts from './pages/AdminProducts'
 import AdminCourtesyReasons from './pages/AdminCourtesyReasons'
+import AdminPromotions from './pages/AdminPromotions'
 import OrderScreen from './pages/OrderScreen'
 
 // Protege una ruta: exige sesión, y opcionalmente un rol específico.
@@ -67,6 +68,14 @@ function App() {
             element={
               <RequireAuth rol="admin">
                 <AdminCourtesyReasons />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/promociones"
+            element={
+              <RequireAuth rol="admin">
+                <AdminPromotions />
               </RequireAuth>
             }
           />
