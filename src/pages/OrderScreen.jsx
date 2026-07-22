@@ -31,6 +31,7 @@ function OrderScreen() {
 
   const [pickerSeat, setPickerSeat] = useState(null) // sub-cuenta destino del producto
   const [courtesySeat, setCourtesySeat] = useState(null) // sub-cuenta destino de la cortesia
+  const [confirmCourtesySeat, setConfirmCourtesySeat] = useState(null) // paso de confirmacion
   const [renameSeat, setRenameSeat] = useState(null) // sub-cuenta en renombre
   const [renameValue, setRenameValue] = useState('')
   const [confirmFree, setConfirmFree] = useState(false)
@@ -75,12 +76,16 @@ function OrderScreen() {
     run(() => voidOrderItem(item.id))
   }
 
-  // Pide confirmacion antes de abrir el registro de cortesia (evita
-  // regalar por error al operar en tablet).
+  // Paso de confirmacion (modal propio) antes de abrir el registro de
+  // cortesia, para no regalar por error al operar en tablet.
   const requestCourtesy = (seat) => {
-    if (!window.confirm(`¿Seguro que deseas registrar una CORTESIA (gratis) para ${seat.nombre}?`))
-      return
     setActionError('')
+    setConfirmCourtesySeat(seat)
+  }
+
+  const confirmCourtesy = () => {
+    const seat = confirmCourtesySeat
+    setConfirmCourtesySeat(null)
     setCourtesySeat(seat)
   }
 
@@ -378,6 +383,40 @@ function OrderScreen() {
           onPay={executePay}
           onClose={() => setPayTarget(null)}
         />
+      )}
+
+      {/* Confirmar antes de registrar una cortesia */}
+      {confirmCourtesySeat && (
+        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-sm space-y-5 rounded-2xl bg-slate-800 p-6 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-purple-600/20 text-4xl">
+              🎁
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-xl font-bold text-white">Registrar una cortesia</h2>
+              <p className="text-slate-300">
+                Vas a regalar productos <span className="font-semibold text-white">sin cobro</span> a{' '}
+                <span className="font-semibold text-white">{confirmCourtesySeat.nombre}</span>.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmCourtesySeat(null)}
+                className="flex-1 rounded-xl bg-slate-700 py-3 text-lg font-semibold text-white hover:bg-slate-600"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmCourtesy}
+                className="flex-1 rounded-xl bg-purple-600 py-3 text-lg font-semibold text-white hover:bg-purple-500"
+              >
+                Continuar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Cortesia a esta sub-cuenta / puesto */}
