@@ -25,6 +25,30 @@ export async function addCourtesy({
   if (error) throw new Error('No se pudo registrar la cortesia')
 }
 
+// Registra varias cortesias (varios productos) con el mismo motivo y destino.
+// items: [{ product, cantidad }]
+export async function addCourtesies({
+  items,
+  empleadoId,
+  motivo = null,
+  motivoDetalle = null,
+  tableSeatId = null,
+  barSeatId = null,
+}) {
+  for (const { product, cantidad } of items) {
+    if (cantidad <= 0) continue
+    await addCourtesy({
+      productId: product.id,
+      cantidad,
+      empleadoId,
+      motivo,
+      motivoDetalle,
+      tableSeatId,
+      barSeatId,
+    })
+  }
+}
+
 // ---- Motivos precargados (administrables por el admin) ----
 
 export async function listCourtesyReasons() {

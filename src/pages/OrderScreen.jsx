@@ -6,7 +6,7 @@ import ProductPicker from '../components/ProductPicker'
 import SeatCard from '../components/SeatCard'
 import PaymentModal from '../components/PaymentModal'
 import CourtesyModal from '../components/CourtesyModal'
-import { addCourtesy } from '../lib/courtesies'
+import { addCourtesies } from '../lib/courtesies'
 import { money } from '../lib/format'
 import {
   addOrderItems,
@@ -75,12 +75,20 @@ function OrderScreen() {
     run(() => voidOrderItem(item.id))
   }
 
+  // Pide confirmacion antes de abrir el registro de cortesia (evita
+  // regalar por error al operar en tablet).
+  const requestCourtesy = (seat) => {
+    if (!window.confirm(`¿Seguro que deseas registrar una CORTESIA (gratis) para ${seat.nombre}?`))
+      return
+    setActionError('')
+    setCourtesySeat(seat)
+  }
+
   // Cortesia ligada a la sub-cuenta abierta (mesa) o al puesto (barra)
-  const handleSeatCourtesy = (productId, cantidad, motivo, motivoDetalle) =>
+  const handleSeatCourtesy = (items, motivo, motivoDetalle) =>
     run(() =>
-      addCourtesy({
-        productId,
-        cantidad,
+      addCourtesies({
+        items,
         empleadoId: employee.id,
         motivo,
         motivoDetalle,
@@ -234,10 +242,7 @@ function OrderScreen() {
                   onVoidItem={handleVoidItem}
                   onRename={() => openRename(seat)}
                   onPay={() => openPaySeat(seat)}
-                  onCourtesy={() => {
-                    setActionError('')
-                    setCourtesySeat(seat)
-                  }}
+                  onCourtesy={() => requestCourtesy(seat)}
                 />
               ))}
             </div>

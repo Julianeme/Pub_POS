@@ -3,9 +3,10 @@ import { CATEGORIAS, listActiveProducts } from '../lib/products'
 import { listCourtesyReasons } from '../lib/courtesies'
 import { money } from '../lib/format'
 
-// Formulario "Regalar cortesia": elegir producto, cantidad y motivo.
+// Formulario "Regalar cortesia": elegir VARIOS productos (mezclando
+// categorias), un motivo, y regalarlos en un solo paso.
 // No muestra el precio de costo (se registra del lado del servidor).
-// onSave(productId, cantidad, motivo, motivoDetalle) — onClose() cancela.
+// onSave(items, motivo, motivoDetalle) donde items = [{ product, cantidad }].
 // subtitulo: texto opcional para indicar el destino (ej. "Mesa 3 · Juan").
 function CourtesyModal({ onSave, onClose, busy, subtitulo }) {
   const [products, setProducts] = useState([])
@@ -13,8 +14,8 @@ function CourtesyModal({ onSave, onClose, busy, subtitulo }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [categoria, setCategoria] = useState('coctel')
-  const [selected, setSelected] = useState(null)
-  const [cantidad, setCantidad] = useState(1)
+  // cart: { [productId]: { product, cantidad } }
+  const [cart, setCart] = useState({})
   const [motivo, setMotivo] = useState('') // nombre del motivo, o 'Otro'
   const [detalle, setDetalle] = useState('')
   const [formError, setFormError] = useState('')
@@ -32,8 +33,27 @@ function CourtesyModal({ onSave, onClose, busy, subtitulo }) {
   const visible = products.filter((p) => p.categoria === categoria)
   const esOtro = motivo === 'Otro'
 
+  const addOne = (p) =>
+    setCart((c) => ({
+      ...c,
+      [p.id]: { product: p, cantidad: (c[p.id]?.cantidad ?? 0) + 1 },
+    }))
+
+  const changeQty = (id, delta) =>
+    setCart((c) => {
+      const cantidad = (c[id]?.cantidad ?? 0) + delta
+      if (cantidad <= 0) {
+        const { [id]: _, ...rest } = c
+        return rest
+      }
+      return { ...c, [id]: { ...c[id], cantidad } }
+    })
+
+  const cartList = Object.entries(cart).map(([id, v]) => ({ id, ...v }))
+  const totalUnidades = cartList.reduce((s, it) => s + it.cantidad, 0)
+
   const handleSave = () => {
-    if (!selected) return
+    if (totalUnidades === 0) return
     if (!motivo) {
       setFormError('Elige un motivo')
       return
@@ -43,7 +63,11 @@ function CourtesyModal({ onSave, onClose, busy, subtitulo }) {
       return
     }
     setFormError('')
-    onSave(selected.id, cantidad, motivo, esOtro ? detalle.trim() : null)
+    onSave(
+      cartList.map(({ product, cantidad }) => ({ product, cantidad })),
+      motivo,
+      esOtro ? detalle.trim() : null
+    )
   }
 
   const chip = (activo) =>
@@ -74,9 +98,9 @@ function CourtesyModal({ onSave, onClose, busy, subtitulo }) {
 
           {!loading && (
             <>
-              {/* Producto */}
+              {/* Productos: tocar agrega 1 al carrito */}
               <div>
-                <p className="mb-2 text-sm font-semibold text-slate-300">1. Producto</p>
+                <p className="mb-2 text-sm font-semibold text-slate-300">1. Productos</p>
                 <div className="mb-2 flex gap-2">
                   {CATEGORIAS.map((c) => (
                     <button
@@ -97,23 +121,59 @@ function CourtesyModal({ onSave, onClose, busy, subtitulo }) {
                   <p className="text-sm text-slate-500">Sin productos en esta categoria.</p>
                 )}
                 <div className="grid grid-cols-2 gap-2">
-                  {visible.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => setSelected(p)}
-                      className={`rounded-xl p-3 text-left transition-colors ${
-                        selected?.id === p.id
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-slate-700 text-white hover:bg-slate-600'
-                      }`}
-                    >
-                      <span className="block font-semibold">{p.nombre}</span>
-                      <span className="text-sm opacity-80">{money(p.precio_publico)}</span>
-                    </button>
-                  ))}
+                  {visible.map((p) => {
+                    const enCarrito = cart[p.id]?.cantidad ?? 0
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => addOne(p)}
+                        className="relative rounded-xl bg-slate-700 p-3 text-left text-white hover:bg-slate-600"
+                      >
+                        {enCarrito > 0 && (
+                          <span className="absolute right-2 top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-purple-500 px-1.5 text-sm font-bold text-white">
+                            {enCarrito}
+                          </span>
+                        )}
+                        <span className="block pr-6 font-semibold">{p.nombre}</span>
+                        <span className="text-sm opacity-80">{money(p.precio_publico)}</span>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
+
+              {/* Carrito */}
+              {cartList.length > 0 && (
+                <ul className="space-y-2 rounded-xl bg-slate-900/50 p-3">
+                  {cartList.map((it) => (
+                    <li key={it.id} className="flex items-center gap-3">
+                      <span className="min-w-0 flex-1 truncate text-white">
+                        {it.product.nombre}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => changeQty(it.id, -1)}
+                          className="h-8 w-8 rounded-lg bg-slate-700 text-lg font-bold text-white hover:bg-slate-600"
+                        >
+                          −
+                        </button>
+                        <span className="w-6 text-center font-semibold text-white">
+                          {it.cantidad}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => changeQty(it.id, 1)}
+                          className="h-8 w-8 rounded-lg bg-slate-700 text-lg font-bold text-white hover:bg-slate-600"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
 
               {/* Motivo */}
               <div>
@@ -129,11 +189,7 @@ function CourtesyModal({ onSave, onClose, busy, subtitulo }) {
                       {r.nombre}
                     </button>
                   ))}
-                  <button
-                    type="button"
-                    onClick={() => setMotivo('Otro')}
-                    className={chip(esOtro)}
-                  >
+                  <button type="button" onClick={() => setMotivo('Otro')} className={chip(esOtro)}>
                     Otro
                   </button>
                 </div>
@@ -151,38 +207,19 @@ function CourtesyModal({ onSave, onClose, busy, subtitulo }) {
           )}
         </div>
 
-        {/* Cantidad + guardar */}
+        {/* Guardar */}
         <div className="space-y-3 border-t border-slate-700 pt-4">
           {formError && <p className="font-medium text-red-400">{formError}</p>}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setCantidad((c) => Math.max(1, c - 1))}
-                disabled={!selected}
-                className="h-12 w-12 rounded-xl bg-slate-700 text-2xl font-bold text-white hover:bg-slate-600 disabled:opacity-40"
-              >
-                −
-              </button>
-              <span className="w-10 text-center text-2xl font-bold text-white">{cantidad}</span>
-              <button
-                type="button"
-                onClick={() => setCantidad((c) => c + 1)}
-                disabled={!selected}
-                className="h-12 w-12 rounded-xl bg-slate-700 text-2xl font-bold text-white hover:bg-slate-600 disabled:opacity-40"
-              >
-                +
-              </button>
-            </div>
-            <button
-              type="button"
-              disabled={!selected || busy}
-              onClick={handleSave}
-              className="h-12 flex-1 rounded-xl bg-purple-600 font-semibold text-white hover:bg-purple-500 disabled:opacity-40"
-            >
-              {selected ? `Regalar ${cantidad} × ${selected.nombre}` : 'Elige un producto'}
-            </button>
-          </div>
+          <button
+            type="button"
+            disabled={totalUnidades === 0 || busy}
+            onClick={handleSave}
+            className="h-12 w-full rounded-xl bg-purple-600 font-semibold text-white hover:bg-purple-500 disabled:opacity-40"
+          >
+            {totalUnidades === 0
+              ? 'Elige productos'
+              : `Regalar ${totalUnidades} ${totalUnidades === 1 ? 'producto' : 'productos'}`}
+          </button>
         </div>
       </div>
     </div>

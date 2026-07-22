@@ -17,17 +17,29 @@ function SeatCard({ seat, onAddProduct, onChangeQty, onVoidItem, onRename, onPay
   return (
     <section className="rounded-2xl bg-slate-800 p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h3 className="truncate text-lg font-bold text-white">{seat.nombre}</h3>
-        {onRename && (
-          <button
-            type="button"
-            onClick={onRename}
-            disabled={busy}
-            className="rounded-lg bg-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-600"
-          >
-            Renombrar
-          </button>
-        )}
+        <h3 className="min-w-0 flex-1 truncate text-lg font-bold text-white">{seat.nombre}</h3>
+        <div className="flex shrink-0 gap-2">
+          {onCourtesy && (
+            <button
+              type="button"
+              onClick={onCourtesy}
+              disabled={busy}
+              className="rounded-lg bg-purple-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-purple-600 disabled:opacity-50"
+            >
+              🎁 Cortesia
+            </button>
+          )}
+          {onRename && (
+            <button
+              type="button"
+              onClick={onRename}
+              disabled={busy}
+              className="rounded-lg bg-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-600"
+            >
+              Renombrar
+            </button>
+          )}
+        </div>
       </div>
 
       {seat.items.length === 0 ? (
@@ -98,26 +110,14 @@ function SeatCard({ seat, onAddProduct, onChangeQty, onVoidItem, onRename, onPay
       )}
 
       <div className="flex items-center justify-between gap-3 border-t border-slate-700 pt-3">
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={onAddProduct}
-            disabled={busy}
-            className="rounded-xl bg-blue-600 px-4 py-2.5 font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
-          >
-            + Agregar
-          </button>
-          {onCourtesy && (
-            <button
-              type="button"
-              onClick={onCourtesy}
-              disabled={busy}
-              className="rounded-xl bg-purple-700 px-4 py-2.5 font-semibold text-white hover:bg-purple-600 disabled:opacity-50"
-            >
-              🎁 Cortesia
-            </button>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={onAddProduct}
+          disabled={busy}
+          className="rounded-xl bg-blue-600 px-4 py-2.5 font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
+        >
+          + Agregar
+        </button>
         <p className="text-lg font-bold text-white">{money(seat.total)}</p>
       </div>
 

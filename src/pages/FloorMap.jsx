@@ -7,7 +7,7 @@ import { useBarLayout } from '../hooks/useBarLayout'
 import { useEmployee } from '../context/EmployeeContext'
 import { openTable, occupyBarSeat } from '../lib/layout'
 import { addIceExpense } from '../lib/expenses'
-import { addCourtesy } from '../lib/courtesies'
+import { addCourtesies } from '../lib/courtesies'
 
 // Pantalla principal: mapa de pisos con mesas y barra con puestos.
 // Verde = libre, rojo = ocupada/o. Tocar algo ocupado abre su pedido.
@@ -45,10 +45,10 @@ function FloorMap() {
     }
   }
 
-  const handleCourtesy = async (productId, cantidad, motivo, motivoDetalle) => {
+  const handleCourtesy = async (items, motivo, motivoDetalle) => {
     setOpBusy(true)
     try {
-      await addCourtesy({ productId, cantidad, empleadoId: employee.id, motivo, motivoDetalle })
+      await addCourtesies({ items, empleadoId: employee.id, motivo, motivoDetalle })
       setOpModal(null)
       showToast('Cortesia registrada')
     } catch (err) {
