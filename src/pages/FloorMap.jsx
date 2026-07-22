@@ -45,10 +45,10 @@ function FloorMap() {
     }
   }
 
-  const handleCourtesy = async (productId, cantidad) => {
+  const handleCourtesy = async (productId, cantidad, motivo, motivoDetalle) => {
     setOpBusy(true)
     try {
-      await addCourtesy({ productId, cantidad, empleadoId: employee.id })
+      await addCourtesy({ productId, cantidad, empleadoId: employee.id, motivo, motivoDetalle })
       setOpModal(null)
       showToast('Cortesia registrada')
     } catch (err) {

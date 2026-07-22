@@ -8,14 +8,21 @@ const itemsTotal = (items) =>
   items.reduce((sum, i) => sum + i.cantidad * Number(i.precio_unitario), 0)
 
 const ITEM_FIELDS = 'id, nombre_producto, precio_unitario, cantidad, estado, created_at'
+const COURTESY_FIELDS = 'id, nombre_producto, cantidad, motivo, motivo_detalle, created_at'
+
+const sortByCreated = (arr) =>
+  (arr ?? []).slice().sort((a, b) => a.created_at.localeCompare(b.created_at))
 
 // ---- lectura (normaliza mesa y barra al mismo formato) ----
-// Devuelve: { kind, id, nombre, estado, seats: [{id, nombre, items, total}], total }
+// Devuelve: { kind, id, nombre, estado,
+//   seats: [{id, nombre, items, courtesies, total}], total }
 
 export async function fetchTableOrder(tableId) {
   const { data, error } = await supabase
     .from('tables')
-    .select(`id, nombre, estado, table_seats(id, nombre, estado, created_at, order_items(${ITEM_FIELDS}))`)
+    .select(
+      `id, nombre, estado, table_seats(id, nombre, estado, created_at, order_items(${ITEM_FIELDS}), courtesy_items(${COURTESY_FIELDS}))`
+    )
     .eq('id', tableId)
     .single()
   if (error) throw new Error('No se pudo cargar la mesa')
@@ -24,10 +31,14 @@ export async function fetchTableOrder(tableId) {
     .filter((s) => s.estado === 'abierto')
     .sort((a, b) => a.created_at.localeCompare(b.created_at))
     .map((s) => {
-      const items = activeItems(s.order_items).sort((a, b) =>
-        a.created_at.localeCompare(b.created_at)
-      )
-      return { id: s.id, nombre: s.nombre, items, total: itemsTotal(items) }
+      const items = sortByCreated(activeItems(s.order_items))
+      return {
+        id: s.id,
+        nombre: s.nombre,
+        items,
+        courtesies: sortByCreated(s.courtesy_items),
+        total: itemsTotal(items),
+      }
     })
 
   return {
@@ -43,18 +54,19 @@ export async function fetchTableOrder(tableId) {
 export async function fetchBarSeatOrder(seatId) {
   const { data, error } = await supabase
     .from('bar_seats')
-    .select(`id, nombre, nombre_cliente, estado, order_items(${ITEM_FIELDS})`)
+    .select(
+      `id, nombre, nombre_cliente, estado, order_items(${ITEM_FIELDS}), courtesy_items(${COURTESY_FIELDS})`
+    )
     .eq('id', seatId)
     .single()
   if (error) throw new Error('No se pudo cargar el puesto')
 
-  const items = activeItems(data.order_items).sort((a, b) =>
-    a.created_at.localeCompare(b.created_at)
-  )
+  const items = sortByCreated(activeItems(data.order_items))
   const seat = {
     id: data.id,
     nombre: data.nombre_cliente ?? data.nombre,
     items,
+    courtesies: sortByCreated(data.courtesy_items),
     total: itemsTotal(items),
   }
 
@@ -168,9 +180,17 @@ export async function cancelBarSeat(seatId) {
     .eq('estado', 'activo')
   if (e1) throw new Error('No se pudo anular el consumo')
 
+  // Desligar cortesias del puesto para que no reaparezcan al reabrirlo
+  // (se conserva el registro). Ver nota en 007_courtesy_reasons.sql.
   const { error: e2 } = await supabase
+    .from('courtesy_items')
+    .update({ bar_seat_id: null })
+    .eq('bar_seat_id', seatId)
+  if (e2) throw new Error('No se pudieron desligar las cortesias')
+
+  const { error: e3 } = await supabase
     .from('bar_seats')
     .update({ estado: 'libre', nombre_cliente: null })
     .eq('id', seatId)
-  if (e2) throw new Error('No se pudo liberar el puesto')
+  if (e3) throw new Error('No se pudo liberar el puesto')
 }

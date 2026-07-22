@@ -5,6 +5,8 @@ import { useEmployee } from '../context/EmployeeContext'
 import ProductPicker from '../components/ProductPicker'
 import SeatCard from '../components/SeatCard'
 import PaymentModal from '../components/PaymentModal'
+import CourtesyModal from '../components/CourtesyModal'
+import { addCourtesy } from '../lib/courtesies'
 import { money } from '../lib/format'
 import {
   addOrderItems,
@@ -28,6 +30,7 @@ function OrderScreen() {
   const { order, loading, error, refresh } = useOrder(tipo, id)
 
   const [pickerSeat, setPickerSeat] = useState(null) // sub-cuenta destino del producto
+  const [courtesySeat, setCourtesySeat] = useState(null) // sub-cuenta destino de la cortesia
   const [renameSeat, setRenameSeat] = useState(null) // sub-cuenta en renombre
   const [renameValue, setRenameValue] = useState('')
   const [confirmFree, setConfirmFree] = useState(false)
@@ -46,6 +49,7 @@ function OrderScreen() {
       await refresh()
       if (close) {
         setPickerSeat(null)
+        setCourtesySeat(null)
         setRenameSeat(null)
         setConfirmFree(false)
       }
@@ -70,6 +74,20 @@ function OrderScreen() {
     if (!window.confirm(`¿Quitar ${item.cantidad} × ${item.nombre_producto}?`)) return
     run(() => voidOrderItem(item.id))
   }
+
+  // Cortesia ligada a la sub-cuenta abierta (mesa) o al puesto (barra)
+  const handleSeatCourtesy = (productId, cantidad, motivo, motivoDetalle) =>
+    run(() =>
+      addCourtesy({
+        productId,
+        cantidad,
+        empleadoId: employee.id,
+        motivo,
+        motivoDetalle,
+        tableSeatId: tipo === 'mesa' ? courtesySeat.id : null,
+        barSeatId: tipo === 'barra' ? courtesySeat.id : null,
+      })
+    )
 
   // Ajuste de a 1 en 1 (ej. 6 -> 5 cervezas) sin pasar por quitar+agregar.
   // Bajar a 0 equivale a quitar el item; no pide confirmacion extra porque
@@ -216,6 +234,10 @@ function OrderScreen() {
                   onVoidItem={handleVoidItem}
                   onRename={() => openRename(seat)}
                   onPay={() => openPaySeat(seat)}
+                  onCourtesy={() => {
+                    setActionError('')
+                    setCourtesySeat(seat)
+                  }}
                 />
               ))}
             </div>
@@ -350,6 +372,16 @@ function OrderScreen() {
           error={actionError}
           onPay={executePay}
           onClose={() => setPayTarget(null)}
+        />
+      )}
+
+      {/* Cortesia a esta sub-cuenta / puesto */}
+      {courtesySeat && (
+        <CourtesyModal
+          subtitulo={`${order?.nombre ?? ''} · ${courtesySeat.nombre}`}
+          busy={busy}
+          onSave={handleSeatCourtesy}
+          onClose={() => setCourtesySeat(null)}
         />
       )}
     </div>

@@ -27,6 +27,7 @@ export function useOrder(kind, id) {
     const channel = supabase
       .channel(`order-${kind}-${id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'courtesy_items' }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'table_seats' }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bar_seats' }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, refresh)

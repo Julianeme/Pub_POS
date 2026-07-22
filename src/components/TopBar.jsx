@@ -35,6 +35,12 @@ function TopBar() {
               Productos
             </Link>
             <Link
+              to="/admin/cortesias"
+              className="rounded-lg bg-slate-700 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-600"
+            >
+              Motivos
+            </Link>
+            <Link
               to="/admin/empleados"
               className="rounded-lg bg-slate-700 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-600"
             >

@@ -5,6 +5,7 @@ import FloorMap from './pages/FloorMap'
 import AdminEmployees from './pages/AdminEmployees'
 import AdminTables from './pages/AdminTables'
 import AdminProducts from './pages/AdminProducts'
+import AdminCourtesyReasons from './pages/AdminCourtesyReasons'
 import OrderScreen from './pages/OrderScreen'
 
 // Protege una ruta: exige sesión, y opcionalmente un rol específico.
@@ -58,6 +59,14 @@ function App() {
             element={
               <RequireAuth rol="admin">
                 <AdminProducts />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/cortesias"
+            element={
+              <RequireAuth rol="admin">
+                <AdminCourtesyReasons />
               </RequireAuth>
             }
           />

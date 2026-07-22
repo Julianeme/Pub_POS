@@ -1,10 +1,19 @@
 import { money } from '../lib/format'
 
+// Muestra el motivo de una cortesia (con detalle si el motivo es "Otro").
+function motivoTexto(c) {
+  if (!c.motivo) return 'Cortesia'
+  if (c.motivo === 'Otro' && c.motivo_detalle) return `Cortesia: ${c.motivo_detalle}`
+  return `Cortesia: ${c.motivo}`
+}
+
 // Tarjeta de una sub-cuenta (o del puesto de barra): items, total y acciones.
 // onChangeQty(item, nuevaCantidad) ajusta de a 1 en 1 sin borrar el item;
 // onVoidItem(item) lo quita por completo (anula, conserva historial);
-// onPay() abre el cobro de esta sub-cuenta (opcional).
-function SeatCard({ seat, onAddProduct, onChangeQty, onVoidItem, onRename, onPay, busy }) {
+// onPay() abre el cobro de esta sub-cuenta (opcional);
+// onCourtesy() abre el registro de una cortesia para esta sub-cuenta.
+function SeatCard({ seat, onAddProduct, onChangeQty, onVoidItem, onRename, onPay, onCourtesy, busy }) {
+  const courtesies = seat.courtesies ?? []
   return (
     <section className="rounded-2xl bg-slate-800 p-4">
       <div className="mb-3 flex items-center justify-between gap-2">
@@ -74,15 +83,41 @@ function SeatCard({ seat, onAddProduct, onChangeQty, onVoidItem, onRename, onPay
         </ul>
       )}
 
+      {/* Cortesias regaladas a esta sub-cuenta (no suman al total) */}
+      {courtesies.length > 0 && (
+        <ul className="mb-3 space-y-1 rounded-xl bg-purple-950/40 p-3">
+          {courtesies.map((c) => (
+            <li key={c.id} className="flex items-center justify-between gap-2 text-sm">
+              <span className="truncate text-purple-200">
+                🎁 {c.cantidad} × {c.nombre_producto}
+              </span>
+              <span className="shrink-0 text-xs text-purple-300/80">{motivoTexto(c)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
       <div className="flex items-center justify-between gap-3 border-t border-slate-700 pt-3">
-        <button
-          type="button"
-          onClick={onAddProduct}
-          disabled={busy}
-          className="rounded-xl bg-blue-600 px-4 py-2.5 font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
-        >
-          + Agregar
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={onAddProduct}
+            disabled={busy}
+            className="rounded-xl bg-blue-600 px-4 py-2.5 font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
+          >
+            + Agregar
+          </button>
+          {onCourtesy && (
+            <button
+              type="button"
+              onClick={onCourtesy}
+              disabled={busy}
+              className="rounded-xl bg-purple-700 px-4 py-2.5 font-semibold text-white hover:bg-purple-600 disabled:opacity-50"
+            >
+              🎁 Cortesia
+            </button>
+          )}
+        </div>
         <p className="text-lg font-bold text-white">{money(seat.total)}</p>
       </div>
 
