@@ -16,7 +16,8 @@ export async function addIceExpense({ cantidad, costoUnitario, empleadoId }) {
 
 // Gasto generico de dinero (otro gasto, DJ residente, etc.): un monto total
 // con descripcion. tipo identifica el rubro para el cierre ('otro', 'dj').
-export async function addExpense({ tipo, monto, descripcion, empleadoId }) {
+// djSessionId liga el pago a la cuenta del DJ (opcional).
+export async function addExpense({ tipo, monto, descripcion, empleadoId, djSessionId = null }) {
   const { error } = await supabase.from('expenses').insert({
     tipo,
     descripcion,
@@ -24,6 +25,7 @@ export async function addExpense({ tipo, monto, descripcion, empleadoId }) {
     costo_unitario: monto,
     total: monto,
     empleado_id: empleadoId,
+    dj_session_id: djSessionId,
   })
   if (error) throw new Error('No se pudo registrar el gasto')
 }

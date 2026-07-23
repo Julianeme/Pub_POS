@@ -67,9 +67,9 @@ function Caja() {
 
   const acciones = [
     { key: 'base', icon: '🏦', label: 'Base de caja', desc: 'Fondo inicial del turno' },
-    { key: 'retiro', icon: '📤', label: 'Retiro', desc: 'Sacar efectivo de la caja' },
-    { key: 'otro', icon: '🧾', label: 'Otro gasto', desc: 'Gasto pagado de la caja' },
-    { key: 'dj', icon: '🎧', label: 'DJ residente', desc: 'Pago al DJ de la noche' },
+    { key: 'retiro', icon: '📤', label: 'Retiro', desc: 'Efectivo que sale sin gastarse' },
+    { key: 'otro', icon: '🧾', label: 'Otro gasto', desc: 'Dinero gastado en algo' },
+    { key: 'dj', icon: '🎧', label: 'DJ residente', desc: 'Cuenta del DJ (efectivo + cortesias)', to: '/dj' },
     { key: 'merma', icon: '💥', label: 'Merma / rotura', desc: 'Producto perdido o roto' },
     { key: 'consumo', icon: '🧑‍🍳', label: 'Consumo interno', desc: 'Consumo del personal' },
   ]
@@ -87,21 +87,33 @@ function Caja() {
         {error && <p className="font-medium text-red-400">{error}</p>}
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {acciones.map((a) => (
-            <button
-              key={a.key}
-              type="button"
-              onClick={() => {
-                setError('')
-                setModal(a.key)
-              }}
-              className="rounded-2xl bg-slate-800 p-4 text-left hover:bg-slate-700"
-            >
-              <span className="text-3xl">{a.icon}</span>
-              <p className="mt-2 font-semibold text-white">{a.label}</p>
-              <p className="text-xs text-slate-400">{a.desc}</p>
-            </button>
-          ))}
+          {acciones.map((a) => {
+            const contenido = (
+              <>
+                <span className="text-3xl">{a.icon}</span>
+                <p className="mt-2 font-semibold text-white">{a.label}</p>
+                <p className="text-xs text-slate-400">{a.desc}</p>
+              </>
+            )
+            const clase = 'block rounded-2xl bg-slate-800 p-4 text-left hover:bg-slate-700'
+            return a.to ? (
+              <Link key={a.key} to={a.to} className={clase}>
+                {contenido}
+              </Link>
+            ) : (
+              <button
+                key={a.key}
+                type="button"
+                onClick={() => {
+                  setError('')
+                  setModal(a.key)
+                }}
+                className={clase}
+              >
+                {contenido}
+              </button>
+            )
+          })}
         </div>
 
         {/* Propinas */}
@@ -171,6 +183,7 @@ function Caja() {
         <AmountModal
           icon="📤"
           title="Retiro de caja"
+          hint="Efectivo que sale de la caja pero no se gasta (ej. llevar a la caja fuerte)."
           montoLabel="Monto a retirar"
           descripcionLabel="Motivo (opcional)"
           descripcionPlaceholder="Ej. llevado a caja fuerte"
@@ -191,6 +204,7 @@ function Caja() {
         <AmountModal
           icon="🧾"
           title="Otro gasto"
+          hint="Dinero gastado en algo (insumos, transporte, etc.). Reduce la utilidad."
           montoLabel="Monto del gasto"
           descripcionLabel="Descripcion"
           descripcionPlaceholder="Ej. limones, transporte..."
@@ -199,24 +213,6 @@ function Caja() {
             run(
               () => addExpense({ tipo: 'otro', monto, descripcion, empleadoId: employee.id }),
               'Gasto registrado'
-            )
-          }
-          onClose={() => setModal(null)}
-          busy={busy}
-        />
-      )}
-
-      {modal === 'dj' && (
-        <AmountModal
-          icon="🎧"
-          title="DJ residente"
-          montoLabel="Valor a pagar"
-          descripcionLabel="Nombre del DJ (opcional)"
-          descripcionPlaceholder="Ej. DJ Andres"
-          onSave={(monto, descripcion) =>
-            run(
-              () => addExpense({ tipo: 'dj', monto, descripcion, empleadoId: employee.id }),
-              'Pago de DJ registrado'
             )
           }
           onClose={() => setModal(null)}

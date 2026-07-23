@@ -7,6 +7,7 @@ import { money } from '../lib/format'
 function AmountModal({
   icon = '💵',
   title,
+  hint,
   montoLabel = 'Monto',
   descripcionLabel,
   descripcionPlaceholder,
@@ -45,9 +46,12 @@ function AmountModal({
   return (
     <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/60 p-4">
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 rounded-2xl bg-slate-800 p-6">
-        <h2 className="text-xl font-bold text-white">
-          {icon} {title}
-        </h2>
+        <div>
+          <h2 className="text-xl font-bold text-white">
+            {icon} {title}
+          </h2>
+          {hint && <p className="mt-1 text-sm text-slate-400">{hint}</p>}
+        </div>
 
         <label className="block text-sm text-slate-300">
           {montoLabel}

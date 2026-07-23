@@ -9,6 +9,7 @@ import AdminCourtesyReasons from './pages/AdminCourtesyReasons'
 import AdminPromotions from './pages/AdminPromotions'
 import OrderScreen from './pages/OrderScreen'
 import Caja from './pages/Caja'
+import DjAccount from './pages/DjAccount'
 
 // Protege una ruta: exige sesión, y opcionalmente un rol específico.
 function RequireAuth({ children, rol }) {
@@ -45,6 +46,14 @@ function App() {
             element={
               <RequireAuth>
                 <Caja />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/dj"
+            element={
+              <RequireAuth>
+                <DjAccount />
               </RequireAuth>
             }
           />

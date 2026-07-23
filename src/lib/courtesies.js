@@ -12,6 +12,7 @@ export async function addCourtesy({
   motivoDetalle = null,
   tableSeatId = null,
   barSeatId = null,
+  djSessionId = null,
 }) {
   const { error } = await supabase.rpc('add_courtesy', {
     p_product_id: productId,
@@ -21,6 +22,7 @@ export async function addCourtesy({
     p_motivo_detalle: motivoDetalle,
     p_table_seat_id: tableSeatId,
     p_bar_seat_id: barSeatId,
+    p_dj_session_id: djSessionId,
   })
   if (error) throw new Error('No se pudo registrar la cortesia')
 }
@@ -34,6 +36,7 @@ export async function addCourtesies({
   motivoDetalle = null,
   tableSeatId = null,
   barSeatId = null,
+  djSessionId = null,
 }) {
   for (const { product, cantidad } of items) {
     if (cantidad <= 0) continue
@@ -45,6 +48,7 @@ export async function addCourtesies({
       motivoDetalle,
       tableSeatId,
       barSeatId,
+      djSessionId,
     })
   }
 }
