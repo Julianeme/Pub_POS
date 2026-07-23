@@ -1,5 +1,5 @@
 import { money } from '../lib/format'
-import { lineTotal, lineOriginal } from '../lib/orders'
+import { lineOriginal } from '../lib/orders'
 
 // Muestra el motivo de una cortesia (con detalle si el motivo es "Otro").
 function motivoTexto(c) {
@@ -92,11 +92,11 @@ function SeatCard({ seat, onAddProduct, onChangeQty, onVoidItem, onRename, onPay
                       {money(lineOriginal(item))}
                     </span>
                     <span className="block font-semibold text-amber-400">
-                      {money(lineTotal(item))}
+                      {money(item.charged)}
                     </span>
                   </>
                 ) : (
-                  <span className="font-semibold text-white">{money(lineTotal(item))}</span>
+                  <span className="font-semibold text-white">{money(item.charged)}</span>
                 )}
               </span>
 

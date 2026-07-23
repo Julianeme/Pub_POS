@@ -19,14 +19,27 @@ export async function fetchLayout() {
 
 // ---- Mesas ----
 
-// Abre la mesa y crea su primera sub-cuenta ("Cliente 1")
+// Abre la mesa y crea su primera sub-cuenta ("Cliente 1").
+// opened_at delimita esta ocupacion (para agrupar promos solo de esta sesion).
 export async function openTable(id) {
-  const { error } = await supabase.from('tables').update({ estado: 'ocupada' }).eq('id', id)
+  const { error } = await supabase
+    .from('tables')
+    .update({ estado: 'ocupada', opened_at: new Date().toISOString() })
+    .eq('id', id)
   if (error) throw new Error('No se pudo abrir la mesa')
   const { error: e2 } = await supabase
     .from('table_seats')
     .insert({ table_id: id, nombre: 'Cliente 1' })
   if (e2) throw new Error('No se pudo crear la sub-cuenta inicial')
+}
+
+// Interruptor por mesa: agrupar el 2x1 al nivel de toda la mesa
+export async function setTableGroupPromos(id, value) {
+  const { error } = await supabase
+    .from('tables')
+    .update({ agrupar_promos: value })
+    .eq('id', id)
+  if (error) throw new Error('No se pudo cambiar el agrupamiento de promos')
 }
 
 export async function addTable(floorId, nombre, orden) {

@@ -19,7 +19,7 @@ import {
   fetchTableOrder,
 } from '../lib/orders'
 import { payTableSeat, payTable, payBarSeat } from '../lib/payments'
-import { renameBarSeatClient } from '../lib/layout'
+import { renameBarSeatClient, setTableGroupPromos } from '../lib/layout'
 import { listActivePromotions, activePromoForProduct } from '../lib/promotions'
 
 // Pantalla de pedido de una mesa (con sub-cuentas) o un puesto de barra.
@@ -155,6 +155,9 @@ function OrderScreen() {
       navigate('/', { replace: true })
     })
 
+  const handleToggleGroup = () =>
+    run(() => setTableGroupPromos(order.id, !order.agruparPromos), { close: false })
+
   // ---- Cobro ----
 
   const openPaySeat = (seat) => {
@@ -242,6 +245,35 @@ function OrderScreen() {
               Volver al mapa para abrirlo
             </Link>
           </div>
+        )}
+
+        {order && !isFree && tipo === 'mesa' && (
+          <button
+            type="button"
+            onClick={handleToggleGroup}
+            disabled={busy}
+            className="flex w-full items-center justify-between rounded-xl bg-slate-800 px-5 py-3 text-left disabled:opacity-50"
+          >
+            <span>
+              <span className="font-semibold text-white">Agrupar promociones de la mesa</span>
+              <span className="block text-xs text-slate-400">
+                {order.agruparPromos
+                  ? 'El 2x1 se reparte entre las sub-cuentas de la mesa'
+                  : 'El 2x1 se aplica dentro de cada sub-cuenta por separado'}
+              </span>
+            </span>
+            <span
+              className={`ml-3 flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition-colors ${
+                order.agruparPromos ? 'bg-green-600' : 'bg-slate-600'
+              }`}
+            >
+              <span
+                className={`h-5 w-5 rounded-full bg-white transition-transform ${
+                  order.agruparPromos ? 'translate-x-5' : ''
+                }`}
+              />
+            </span>
+          </button>
         )}
 
         {order && !isFree && (

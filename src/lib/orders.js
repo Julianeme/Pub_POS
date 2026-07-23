@@ -7,9 +7,8 @@ const activeItems = (items) => (items ?? []).filter((i) => i.estado === 'activo'
 // Precio original de la linea (sin promo)
 export const lineOriginal = (item) => item.cantidad * Number(item.precio_unitario)
 
-// Precio efectivo de la linea aplicando la promo congelada al pedir.
-// 2x1: se cobra ceil(cantidad / 2) unidades. Debe coincidir con la regla
-// del servidor en pay_table_seat / pay_bar_seat (008_promotions.sql).
+// Precio efectivo de la linea con 2x1 POR LINEA (sin agrupar).
+// Se cobra ceil(cantidad / 2) unidades. Coincide con el 'else' del servidor.
 export const lineTotal = (item) => {
   if (item.promo_tipo === '2x1') {
     return Math.ceil(item.cantidad / 2) * Number(item.precio_unitario)
@@ -17,30 +16,73 @@ export const lineTotal = (item) => {
   return lineOriginal(item)
 }
 
-const itemsTotal = (items) => items.reduce((sum, i) => sum + lineTotal(i), 0)
+const groupKey = (item) => `${item.product_id}|${item.precio_unitario}`
+
+// Precio efectivo de la linea con 2x1 AGRUPADO por mesa. groupQty es el mapa
+// de unidades totales por producto en la ocupacion. Reparte el descuento
+// proporcional: round(q / Q * ceil(Q/2) * precio). Coincide con la regla
+// agrupada del servidor (009_group_promos.sql).
+const lineTotalGrouped = (item, groupQty) => {
+  if (item.promo_tipo !== '2x1') return lineOriginal(item)
+  const Q = groupQty[groupKey(item)] || item.cantidad
+  const precio = Number(item.precio_unitario)
+  if (Q <= 0) return lineTotal(item)
+  return Math.round((item.cantidad / Q) * Math.ceil(Q / 2) * precio)
+}
 
 const ITEM_FIELDS =
-  'id, nombre_producto, precio_unitario, cantidad, estado, promo_tipo, promo_nombre, created_at'
+  'id, product_id, nombre_producto, precio_unitario, cantidad, estado, promo_tipo, promo_nombre, created_at'
 const COURTESY_FIELDS = 'id, nombre_producto, cantidad, motivo, motivo_detalle, created_at'
 
 const sortByCreated = (arr) =>
   (arr ?? []).slice().sort((a, b) => a.created_at.localeCompare(b.created_at))
 
+// Adjunta item.charged (precio efectivo) segun la funcion de precio dada,
+// y devuelve el total de la lista.
+const withCharged = (items, priceFn) => {
+  let total = 0
+  for (const it of items) {
+    it.charged = priceFn(it)
+    total += it.charged
+  }
+  return total
+}
+
 // ---- lectura (normaliza mesa y barra al mismo formato) ----
 // Devuelve: { kind, id, nombre, estado,
 //   seats: [{id, nombre, items, courtesies, total}], total }
+// Cada item lleva .charged (precio efectivo ya con promo).
 
 export async function fetchTableOrder(tableId) {
   const { data, error } = await supabase
     .from('tables')
     .select(
-      `id, nombre, estado, table_seats(id, nombre, estado, created_at, order_items(${ITEM_FIELDS}), courtesy_items(${COURTESY_FIELDS}))`
+      `id, nombre, estado, opened_at, agrupar_promos, table_seats(id, nombre, estado, created_at, order_items(${ITEM_FIELDS}), courtesy_items(${COURTESY_FIELDS}))`
     )
     .eq('id', tableId)
     .single()
   if (error) throw new Error('No se pudo cargar la mesa')
 
-  const seats = (data.table_seats ?? [])
+  const agrupar = data.agrupar_promos
+  const openedAt = data.opened_at
+  const allSeats = data.table_seats ?? []
+
+  // Unidades totales por producto en promo, sobre la ocupacion actual
+  // (sub-cuentas creadas desde opened_at; items activos o ya pagados).
+  const groupQty = {}
+  if (agrupar) {
+    for (const s of allSeats) {
+      if (openedAt && s.created_at < openedAt) continue
+      for (const it of s.order_items ?? []) {
+        if (it.promo_tipo === '2x1' && (it.estado === 'activo' || it.estado === 'pagado')) {
+          groupQty[groupKey(it)] = (groupQty[groupKey(it)] || 0) + it.cantidad
+        }
+      }
+    }
+  }
+  const priceFn = agrupar ? (it) => lineTotalGrouped(it, groupQty) : lineTotal
+
+  const seats = allSeats
     .filter((s) => s.estado === 'abierto')
     .sort((a, b) => a.created_at.localeCompare(b.created_at))
     .map((s) => {
@@ -50,7 +92,7 @@ export async function fetchTableOrder(tableId) {
         nombre: s.nombre,
         items,
         courtesies: sortByCreated(s.courtesy_items),
-        total: itemsTotal(items),
+        total: withCharged(items, priceFn),
       }
     })
 
@@ -59,6 +101,7 @@ export async function fetchTableOrder(tableId) {
     id: data.id,
     nombre: data.nombre,
     estado: data.estado,
+    agruparPromos: agrupar,
     seats,
     total: seats.reduce((sum, s) => sum + s.total, 0),
   }
@@ -74,13 +117,14 @@ export async function fetchBarSeatOrder(seatId) {
     .single()
   if (error) throw new Error('No se pudo cargar el puesto')
 
+  // La barra es un solo consumidor: 2x1 por linea (sin agrupar).
   const items = sortByCreated(activeItems(data.order_items))
   const seat = {
     id: data.id,
     nombre: data.nombre_cliente ?? data.nombre,
     items,
     courtesies: sortByCreated(data.courtesy_items),
-    total: itemsTotal(items),
+    total: withCharged(items, lineTotal),
   }
 
   return {
