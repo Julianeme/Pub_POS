@@ -6,6 +6,7 @@ import ProductPicker from '../components/ProductPicker'
 import SeatCard from '../components/SeatCard'
 import PaymentModal from '../components/PaymentModal'
 import CourtesyModal from '../components/CourtesyModal'
+import { useConfirm } from '../components/ConfirmModal'
 import { addCourtesies } from '../lib/courtesies'
 import { money } from '../lib/format'
 import {
@@ -29,6 +30,7 @@ function OrderScreen() {
   const navigate = useNavigate()
   const { employee } = useEmployee()
   const { order, loading, error, refresh } = useOrder(tipo, id)
+  const { confirm, confirmModal } = useConfirm()
 
   const [pickerSeat, setPickerSeat] = useState(null) // sub-cuenta destino del producto
   const [courtesySeat, setCourtesySeat] = useState(null) // sub-cuenta destino de la cortesia
@@ -84,8 +86,14 @@ function OrderScreen() {
       })
     })
 
-  const handleVoidItem = (item) => {
-    if (!window.confirm(`¿Quitar ${item.cantidad} × ${item.nombre_producto}?`)) return
+  const handleVoidItem = async (item) => {
+    const ok = await confirm({
+      icon: '🗑️',
+      title: 'Quitar producto',
+      message: `Se quitara ${item.cantidad} × ${item.nombre_producto} de la cuenta.`,
+      confirmLabel: 'Quitar',
+    })
+    if (!ok) return
     run(() => voidOrderItem(item.id))
   }
 
@@ -473,6 +481,8 @@ function OrderScreen() {
           onClose={() => setCourtesySeat(null)}
         />
       )}
+
+      {confirmModal}
     </div>
   )
 }

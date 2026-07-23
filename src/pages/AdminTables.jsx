@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useBarLayout } from '../hooks/useBarLayout'
 import { addTable, deleteTable, addBarSeat, deleteBarSeat } from '../lib/layout'
+import { useConfirm } from '../components/ConfirmModal'
 
 // Configuracion (solo admin): agregar o eliminar mesas por piso y puestos de barra.
 function AdminTables() {
   const { floors, barSeats, loading, error, refresh } = useBarLayout()
+  const { confirm, confirmModal } = useConfirm()
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState('')
 
@@ -28,12 +30,18 @@ function AdminTables() {
     run(() => addTable(floor.id, `Mesa ${next}`, next))
   }
 
-  const handleDeleteTable = (mesa) => {
+  const handleDeleteTable = async (mesa) => {
     if (mesa.estado === 'ocupada') {
       setActionError(`${mesa.nombre} esta ocupada: liberala antes de eliminarla`)
       return
     }
-    if (!window.confirm(`¿Eliminar ${mesa.nombre}?`)) return
+    const ok = await confirm({
+      icon: '🗑️',
+      title: 'Eliminar mesa',
+      message: `Se eliminara ${mesa.nombre}.`,
+      confirmLabel: 'Eliminar',
+    })
+    if (!ok) return
     run(() => deleteTable(mesa.id))
   }
 
@@ -42,12 +50,18 @@ function AdminTables() {
     run(() => addBarSeat(`Puesto ${next}`, next))
   }
 
-  const handleDeleteBarSeat = (puesto) => {
+  const handleDeleteBarSeat = async (puesto) => {
     if (puesto.estado === 'ocupado') {
       setActionError(`${puesto.nombre} esta ocupado: liberalo antes de eliminarlo`)
       return
     }
-    if (!window.confirm(`¿Eliminar ${puesto.nombre}?`)) return
+    const ok = await confirm({
+      icon: '🗑️',
+      title: 'Eliminar puesto',
+      message: `Se eliminara ${puesto.nombre}.`,
+      confirmLabel: 'Eliminar',
+    })
+    if (!ok) return
     run(() => deleteBarSeat(puesto.id))
   }
 
@@ -138,6 +152,8 @@ function AdminTables() {
           </ul>
         </section>
       </div>
+
+      {confirmModal}
     </main>
   )
 }

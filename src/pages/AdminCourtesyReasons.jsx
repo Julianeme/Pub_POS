@@ -5,10 +5,12 @@ import {
   addCourtesyReason,
   deleteCourtesyReason,
 } from '../lib/courtesies'
+import { useConfirm } from '../components/ConfirmModal'
 
 // Administracion de motivos de cortesia (solo admin). "Otro" no se lista
 // aqui: es una opcion fija del sistema con campo abierto.
 function AdminCourtesyReasons() {
+  const { confirm, confirmModal } = useConfirm()
   const [reasons, setReasons] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -49,7 +51,13 @@ function AdminCourtesyReasons() {
   }
 
   const handleDelete = async (r) => {
-    if (!window.confirm(`¿Eliminar el motivo "${r.nombre}"?`)) return
+    const ok = await confirm({
+      icon: '🗑️',
+      title: 'Eliminar motivo',
+      message: `Se eliminara el motivo "${r.nombre}".`,
+      confirmLabel: 'Eliminar',
+    })
+    if (!ok) return
     setBusy(true)
     setError('')
     try {
@@ -118,6 +126,8 @@ function AdminCourtesyReasons() {
           ))}
         </ul>
       </div>
+
+      {confirmModal}
     </main>
   )
 }

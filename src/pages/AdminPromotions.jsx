@@ -12,6 +12,7 @@ import {
 } from '../lib/promotions'
 import { CATEGORIAS, listActiveProducts } from '../lib/products'
 import { money } from '../lib/format'
+import { useConfirm } from '../components/ConfirmModal'
 
 const EMPTY_FORM = {
   nombre: '',
@@ -23,6 +24,7 @@ const EMPTY_FORM = {
 }
 
 function AdminPromotions() {
+  const { confirm, confirmModal } = useConfirm()
   const [promos, setPromos] = useState([])
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -118,7 +120,13 @@ function AdminPromotions() {
   }
 
   const handleDelete = async (p) => {
-    if (!window.confirm(`¿Eliminar la promocion "${p.nombre}"?`)) return
+    const ok = await confirm({
+      icon: '🗑️',
+      title: 'Eliminar promocion',
+      message: `Se eliminara la promocion "${p.nombre}".`,
+      confirmLabel: 'Eliminar',
+    })
+    if (!ok) return
     setBusy(true)
     try {
       await deletePromotion(p.id)
@@ -335,6 +343,8 @@ function AdminPromotions() {
           </form>
         </div>
       )}
+
+      {confirmModal}
     </main>
   )
 }

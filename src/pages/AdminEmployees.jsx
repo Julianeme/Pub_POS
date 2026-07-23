@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useEmployee } from '../context/EmployeeContext'
+import { useConfirm } from '../components/ConfirmModal'
 import {
   listEmployees,
   createEmployee,
@@ -14,6 +15,7 @@ const ROL_LABELS = { admin: 'Admin', mesero: 'Mesero', cajero: 'Cajero' }
 
 function AdminEmployees() {
   const { employee: current } = useEmployee()
+  const { confirm, confirmModal } = useConfirm()
 
   const [employees, setEmployees] = useState([])
   const [loading, setLoading] = useState(true)
@@ -83,7 +85,13 @@ function AdminEmployees() {
 
   const handleDelete = async (emp) => {
     if (emp.id === current.id) return
-    if (!window.confirm(`¿Eliminar a ${emp.nombre} (código ${emp.codigo})?`)) return
+    const ok = await confirm({
+      icon: '🗑️',
+      title: 'Eliminar empleado',
+      message: `Se eliminara a ${emp.nombre} (codigo ${emp.codigo}).`,
+      confirmLabel: 'Eliminar',
+    })
+    if (!ok) return
     try {
       await deleteEmployee(emp.id)
       await refresh()
@@ -223,6 +231,8 @@ function AdminEmployees() {
           </form>
         </div>
       )}
+
+      {confirmModal}
     </main>
   )
 }

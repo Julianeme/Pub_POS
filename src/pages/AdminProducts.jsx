@@ -9,11 +9,13 @@ import {
   deleteProduct,
 } from '../lib/products'
 import { money } from '../lib/format'
+import { useConfirm } from '../components/ConfirmModal'
 
 const EMPTY_FORM = { nombre: '', categoria: 'coctel', precio_publico: '', precio_costo: '' }
 
 // Catalogo de productos (solo admin). El precio de costo solo se ve aqui.
 function AdminProducts() {
+  const { confirm, confirmModal } = useConfirm()
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -111,7 +113,13 @@ function AdminProducts() {
   }
 
   const handleDelete = async (p) => {
-    if (!window.confirm(`¿Eliminar "${p.nombre}" definitivamente?\nSi solo quieres sacarlo del menu, usa "Desactivar".`)) return
+    const ok = await confirm({
+      icon: '🗑️',
+      title: `Eliminar "${p.nombre}"`,
+      message: 'Se eliminara definitivamente. Si solo quieres sacarlo del menu, usa "Desactivar".',
+      confirmLabel: 'Eliminar',
+    })
+    if (!ok) return
     setBusy(true)
     try {
       await deleteProduct(p.id)
@@ -289,6 +297,8 @@ function AdminProducts() {
           </form>
         </div>
       )}
+
+      {confirmModal}
     </main>
   )
 }
