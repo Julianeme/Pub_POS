@@ -16,8 +16,11 @@ import { useConfirm } from '../components/ConfirmModal'
 
 const EMPTY_FORM = {
   nombre: '',
-  tipo: '2x1',
+  modo: 'recurrente', // 'recurrente' | 'fecha'
+  tipo: '2x1', // '2x1' | 'porcentaje'
+  porcentaje: '',
   dias: [],
+  fecha: '',
   horaInicio: '18:00',
   horaFin: '21:00',
   productIds: [],
@@ -63,8 +66,11 @@ function AdminPromotions() {
   const openEdit = (p) => {
     setForm({
       nombre: p.nombre,
+      modo: p.modo,
       tipo: p.tipo,
+      porcentaje: p.porcentaje != null ? String(p.porcentaje) : '',
       dias: p.dias_semana,
+      fecha: p.fecha ?? '',
       horaInicio: horaCorta(p.hora_inicio),
       horaFin: horaCorta(p.hora_fin),
       productIds: p.product_ids,
@@ -90,7 +96,14 @@ function AdminPromotions() {
   const handleSave = async (e) => {
     e.preventDefault()
     if (!form.nombre.trim()) return setFormError('Ponle un nombre a la promocion')
-    if (form.dias.length === 0) return setFormError('Elige al menos un dia')
+    if (form.modo === 'recurrente' && form.dias.length === 0)
+      return setFormError('Elige al menos un dia')
+    if (form.modo === 'fecha' && !form.fecha) return setFormError('Elige una fecha')
+    if (form.tipo === 'porcentaje') {
+      const pct = Number(form.porcentaje)
+      if (!form.porcentaje || Number.isNaN(pct) || pct <= 0 || pct > 100)
+        return setFormError('El porcentaje debe estar entre 1 y 100')
+    }
     if (form.productIds.length === 0) return setFormError('Elige al menos un producto')
     setSaving(true)
     setFormError('')
@@ -140,6 +153,10 @@ function AdminPromotions() {
 
   const productName = (id) => products.find((p) => p.id === id)?.nombre
 
+  const tipoLabel = (p) => (p.tipo === 'porcentaje' ? `-${Number(p.porcentaje)}%` : '2x1')
+  const cuandoTexto = (p) =>
+    p.modo === 'fecha' ? `Fecha ${p.fecha}` : diasTexto(p.dias_semana)
+
   const inputClass =
     'w-full rounded-lg bg-slate-700 px-4 py-3 text-white placeholder-slate-400 ' +
     'outline-none focus:ring-2 focus:ring-blue-500'
@@ -152,9 +169,10 @@ function AdminPromotions() {
             <Link to="/" className="text-sm text-slate-400 hover:text-white">
               ← Volver al mapa
             </Link>
-            <h1 className="text-2xl font-bold text-white">Promociones (2x1)</h1>
+            <h1 className="text-2xl font-bold text-white">Promociones</h1>
             <p className="text-sm text-slate-400">
-              Se aplican solas al agregar un producto en el dia y horario configurados.
+              2x1 o % de descuento, recurrentes por dia o en una fecha puntual. Se
+              aplican solas al agregar el producto en el horario configurado.
             </p>
           </div>
           <button
@@ -184,14 +202,14 @@ function AdminPromotions() {
                   <p className="font-semibold text-white">
                     {p.nombre}
                     <span className="ml-2 rounded bg-amber-500 px-1.5 py-0.5 text-xs font-bold text-slate-900">
-                      {p.tipo}
+                      {tipoLabel(p)}
                     </span>
                     {!p.activo && (
                       <span className="ml-2 text-xs text-yellow-500">(inactiva)</span>
                     )}
                   </p>
                   <p className="text-sm text-slate-400">
-                    {diasTexto(p.dias_semana)} · {horaCorta(p.hora_inicio)}–{horaCorta(p.hora_fin)}
+                    {cuandoTexto(p)} · {horaCorta(p.hora_inicio)}–{horaCorta(p.hora_fin)}
                   </p>
                   <p className="mt-1 truncate text-sm text-slate-500">
                     {p.product_ids.map(productName).filter(Boolean).join(', ') || 'Sin productos'}
@@ -247,24 +265,99 @@ function AdminPromotions() {
               onChange={(e) => setForm({ ...form, nombre: e.target.value })}
             />
 
+            {/* Tipo de descuento */}
             <div>
-              <p className="mb-2 text-sm font-semibold text-slate-300">Dias</p>
-              <div className="flex flex-wrap gap-2">
-                {DIAS.map((d) => (
+              <p className="mb-2 text-sm font-semibold text-slate-300">Tipo de descuento</p>
+              <div className="flex gap-2">
+                {[
+                  { value: '2x1', label: '2x1' },
+                  { value: 'porcentaje', label: '% Descuento' },
+                ].map((t) => (
                   <button
-                    key={d.value}
+                    key={t.value}
                     type="button"
-                    onClick={() => toggleDia(d.value)}
+                    onClick={() => setForm({ ...form, tipo: t.value })}
                     className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                      form.dias.includes(d.value)
+                      form.tipo === t.value
                         ? 'bg-blue-600 text-white'
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                   >
-                    {d.label}
+                    {t.label}
                   </button>
                 ))}
               </div>
+              {form.tipo === 'porcentaje' && (
+                <label className="mt-2 block text-sm text-slate-300">
+                  Porcentaje de descuento
+                  <div className="relative mt-1">
+                    <input
+                      className={inputClass}
+                      inputMode="decimal"
+                      type="number"
+                      min="1"
+                      max="100"
+                      step="any"
+                      placeholder="Ej. 20"
+                      value={form.porcentaje}
+                      onChange={(e) => setForm({ ...form, porcentaje: e.target.value })}
+                    />
+                    <span className="pointer-events-none absolute right-4 top-3 text-slate-400">
+                      %
+                    </span>
+                  </div>
+                </label>
+              )}
+            </div>
+
+            {/* Cuando aplica: recurrente o fecha especifica */}
+            <div>
+              <p className="mb-2 text-sm font-semibold text-slate-300">¿Cuando aplica?</p>
+              <div className="mb-2 flex gap-2">
+                {[
+                  { value: 'recurrente', label: 'Dias de la semana' },
+                  { value: 'fecha', label: 'Fecha especifica' },
+                ].map((m) => (
+                  <button
+                    key={m.value}
+                    type="button"
+                    onClick={() => setForm({ ...form, modo: m.value })}
+                    className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                      form.modo === m.value
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+
+              {form.modo === 'recurrente' ? (
+                <div className="flex flex-wrap gap-2">
+                  {DIAS.map((d) => (
+                    <button
+                      key={d.value}
+                      type="button"
+                      onClick={() => toggleDia(d.value)}
+                      className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                        form.dias.includes(d.value)
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      }`}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <input
+                  type="date"
+                  className={inputClass}
+                  value={form.fecha}
+                  onChange={(e) => setForm({ ...form, fecha: e.target.value })}
+                />
+              )}
             </div>
 
             <div className="flex gap-3">

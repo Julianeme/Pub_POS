@@ -7,11 +7,14 @@ const activeItems = (items) => (items ?? []).filter((i) => i.estado === 'activo'
 // Precio original de la linea (sin promo)
 export const lineOriginal = (item) => item.cantidad * Number(item.precio_unitario)
 
-// Precio efectivo de la linea con 2x1 POR LINEA (sin agrupar).
-// Se cobra ceil(cantidad / 2) unidades. Coincide con el 'else' del servidor.
+// Precio efectivo de la linea SIN agrupar. 2x1 -> cobra ceil(cantidad/2)
+// unidades. Porcentaje -> aplica el % de descuento a la linea completa.
 export const lineTotal = (item) => {
   if (item.promo_tipo === '2x1') {
     return Math.ceil(item.cantidad / 2) * Number(item.precio_unitario)
+  }
+  if (item.promo_tipo === 'porcentaje') {
+    return Math.round(lineOriginal(item) * (1 - Number(item.promo_valor) / 100))
   }
   return lineOriginal(item)
 }
@@ -65,7 +68,7 @@ function buildGroupedCharges(occSeatsSorted) {
 }
 
 const ITEM_FIELDS =
-  'id, product_id, nombre_producto, precio_unitario, cantidad, estado, promo_tipo, promo_nombre, created_at'
+  'id, product_id, nombre_producto, precio_unitario, cantidad, estado, promo_tipo, promo_nombre, promo_valor, created_at'
 const COURTESY_FIELDS = 'id, nombre_producto, cantidad, motivo, motivo_detalle, created_at'
 
 const sortByCreated = (arr) =>
@@ -112,7 +115,8 @@ export async function fetchTableOrder(tableId) {
   // Precio efectivo de una linea. Con agrupacion, reparte el cargo del
   // producto (a nivel sub-cuenta) entre las lineas de esa sub-cuenta.
   const chargedForItem = (it, seatId) => {
-    if (it.promo_tipo !== '2x1') return lineOriginal(it)
+    // Porcentaje y sin promo: por linea. El agrupamiento solo aplica al 2x1.
+    if (it.promo_tipo !== '2x1') return lineTotal(it)
     if (!agrupar) return lineTotal(it)
     const info = grouped[groupKey(it)]
     const q = info?.units.get(seatId)
@@ -188,7 +192,7 @@ export async function fetchBarSeatOrder(seatId) {
 export async function addOrderItems({ tableSeatId = null, barSeatId = null, items, empleadoId }) {
   const rows = items
     .filter((it) => it.cantidad > 0)
-    .map(({ product, cantidad, promoTipo = null, promoNombre = null }) => ({
+    .map(({ product, cantidad, promoTipo = null, promoNombre = null, promoValor = null }) => ({
       table_seat_id: tableSeatId,
       bar_seat_id: barSeatId,
       product_id: product.id,
@@ -197,6 +201,7 @@ export async function addOrderItems({ tableSeatId = null, barSeatId = null, item
       cantidad,
       promo_tipo: promoTipo,
       promo_nombre: promoNombre,
+      promo_valor: promoValor,
       empleado_id: empleadoId,
     }))
   if (rows.length === 0) return

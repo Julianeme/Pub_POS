@@ -57,6 +57,11 @@ function SeatCard({ seat, onAddProduct, onChangeQty, onVoidItem, onRename, onPay
                       2x1
                     </span>
                   )}
+                  {item.promo_tipo === 'porcentaje' && (
+                    <span className="ml-2 rounded bg-amber-500 px-1.5 py-0.5 text-xs font-bold text-slate-900">
+                      -{Number(item.promo_valor)}%
+                    </span>
+                  )}
                 </p>
                 <p className="text-xs text-slate-500">{money(item.precio_unitario)} c/u</p>
               </div>

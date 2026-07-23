@@ -76,6 +76,7 @@ function OrderScreen() {
           cantidad,
           promoTipo: promo?.tipo ?? null,
           promoNombre: promo?.nombre ?? null,
+          promoValor: promo?.tipo === 'porcentaje' ? promo.porcentaje : null,
         }
       })
       await addOrderItems({

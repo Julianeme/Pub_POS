@@ -31,31 +31,48 @@ export function horaCorta(hhmm) {
   return hhmm ? hhmm.slice(0, 5) : ''
 }
 
+// Fecha local en formato 'YYYY-MM-DD' (para comparar con promotions.fecha)
+function toDateStr(d) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
+}
+
 // Devuelve la promo activa (o null) para un producto en un instante dado.
-// Maneja horarios que cruzan medianoche (ej. 22:00 -> 02:00).
+// Considera modo 'recurrente' (dias de semana) y 'fecha' (fecha puntual),
+// y horarios que cruzan medianoche. Si varias aplican, prioriza la de
+// fecha especifica (es un override intencional sobre la recurrente).
 export function activePromoForProduct(promos, productId, now = new Date()) {
   const weekday = now.getDay()
   const minutes = now.getHours() * 60 + now.getMinutes()
-  return (
-    promos.find((p) => {
-      if (!p.product_ids.includes(productId)) return false
-      if (!p.dias_semana.includes(weekday)) return false
-      const ini = toMinutes(p.hora_inicio)
-      const fin = toMinutes(p.hora_fin)
-      if (ini <= fin) return minutes >= ini && minutes <= fin
-      // cruza medianoche
-      return minutes >= ini || minutes <= fin
-    }) ?? null
-  )
+  const hoy = toDateStr(now)
+
+  const matches = promos.filter((p) => {
+    if (!p.product_ids.includes(productId)) return false
+    const ini = toMinutes(p.hora_inicio)
+    const fin = toMinutes(p.hora_fin)
+    const enHorario =
+      ini <= fin ? minutes >= ini && minutes <= fin : minutes >= ini || minutes <= fin
+    if (!enHorario) return false
+    if (p.modo === 'fecha') return p.fecha === hoy
+    return p.dias_semana.includes(weekday)
+  })
+
+  if (matches.length === 0) return null
+  return matches.find((p) => p.modo === 'fecha') ?? matches[0]
 }
 
 // ---- lectura ----
 
 // Promos activas con sus productos, para evaluar al agregar al pedido.
+const PROMO_FIELDS =
+  'id, nombre, modo, tipo, porcentaje, dias_semana, fecha, hora_inicio, hora_fin, promotion_products(product_id)'
+
 export async function listActivePromotions() {
   const { data, error } = await supabase
     .from('promotions')
-    .select('id, nombre, tipo, dias_semana, hora_inicio, hora_fin, promotion_products(product_id)')
+    .select(PROMO_FIELDS)
     .eq('activo', true)
   if (error) throw new Error('No se pudieron cargar las promociones')
   return (data ?? []).map((p) => ({
@@ -67,9 +84,7 @@ export async function listActivePromotions() {
 export async function listPromotionsAdmin() {
   const { data, error } = await supabase
     .from('promotions')
-    .select(
-      'id, nombre, tipo, dias_semana, hora_inicio, hora_fin, activo, promotion_products(product_id)'
-    )
+    .select(`${PROMO_FIELDS}, activo`)
     .order('created_at')
   if (error) throw new Error('No se pudieron cargar las promociones')
   return (data ?? []).map((p) => ({
@@ -89,35 +104,34 @@ async function setPromotionProducts(promotionId, productIds) {
   }
 }
 
-export async function createPromotion({ nombre, tipo, dias, horaInicio, horaFin, productIds }) {
-  const { data, error } = await supabase
+// Normaliza el payload segun modo (recurrente/fecha) y tipo (2x1/porcentaje)
+function promoRow({ nombre, modo, tipo, porcentaje, dias, fecha, horaInicio, horaFin }) {
+  return {
+    nombre,
+    modo,
+    tipo,
+    porcentaje: tipo === 'porcentaje' ? Number(porcentaje) : null,
+    dias_semana: modo === 'recurrente' ? dias : [],
+    fecha: modo === 'fecha' ? fecha : null,
+    hora_inicio: horaInicio,
+    hora_fin: horaFin,
+  }
+}
+
+export async function createPromotion(data) {
+  const { data: row, error } = await supabase
     .from('promotions')
-    .insert({
-      nombre,
-      tipo,
-      dias_semana: dias,
-      hora_inicio: horaInicio,
-      hora_fin: horaFin,
-    })
+    .insert(promoRow(data))
     .select('id')
     .single()
   if (error) throw new Error('No se pudo crear la promocion')
-  await setPromotionProducts(data.id, productIds)
+  await setPromotionProducts(row.id, data.productIds)
 }
 
-export async function updatePromotion(id, { nombre, tipo, dias, horaInicio, horaFin, productIds }) {
-  const { error } = await supabase
-    .from('promotions')
-    .update({
-      nombre,
-      tipo,
-      dias_semana: dias,
-      hora_inicio: horaInicio,
-      hora_fin: horaFin,
-    })
-    .eq('id', id)
+export async function updatePromotion(id, data) {
+  const { error } = await supabase.from('promotions').update(promoRow(data)).eq('id', id)
   if (error) throw new Error('No se pudo actualizar la promocion')
-  await setPromotionProducts(id, productIds)
+  await setPromotionProducts(id, data.productIds)
 }
 
 export async function setPromotionActive(id, activo) {
