@@ -18,16 +18,50 @@ export const lineTotal = (item) => {
 
 const groupKey = (item) => `${item.product_id}|${item.precio_unitario}`
 
-// Precio efectivo de la linea con 2x1 AGRUPADO por mesa. groupQty es el mapa
-// de unidades totales por producto en la ocupacion. Reparte el descuento
-// proporcional: round(q / Q * ceil(Q/2) * precio). Coincide con la regla
-// agrupada del servidor (009_group_promos.sql).
-const lineTotalGrouped = (item, groupQty) => {
-  if (item.promo_tipo !== '2x1') return lineOriginal(item)
-  const Q = groupQty[groupKey(item)] || item.cantidad
-  const precio = Number(item.precio_unitario)
-  if (Q <= 0) return lineTotal(item)
-  return Math.round((item.cantidad / Q) * Math.ceil(Q / 2) * precio)
+// Calcula, para cada producto en promo 2x1, cuanto paga CADA sub-cuenta,
+// respetando la prioridad pedida:
+//   1o) cada sub-cuenta aprovecha sus propios pares 2x1 (por cada 2 unidades
+//       propias, paga 1),
+//   2o) las unidades "impares" sobrantes de distintas sub-cuentas se
+//       emparejan entre si y cada una de ese par paga la mitad,
+//   3o) si queda un impar sin pareja, paga completo.
+// occSeatsSorted: sub-cuentas de la ocupacion, ordenadas por created_at.
+// Devuelve: { [productKey]: { units: Map(seatId->unidades), charge: Map(seatId->monto) } }
+function buildGroupedCharges(occSeatsSorted) {
+  const perKey = {}
+  for (const s of occSeatsSorted) {
+    for (const it of s.order_items ?? []) {
+      if (it.promo_tipo === '2x1' && (it.estado === 'activo' || it.estado === 'pagado')) {
+        const k = groupKey(it)
+        perKey[k] ??= { price: Number(it.precio_unitario), units: new Map() }
+        perKey[k].units.set(s.id, (perKey[k].units.get(s.id) || 0) + it.cantidad)
+      }
+    }
+  }
+
+  const result = {}
+  for (const [k, info] of Object.entries(perKey)) {
+    const { price, units } = info
+    // sub-cuentas con cantidad impar (tienen una unidad sobrante), en orden
+    const oddSeatIds = occSeatsSorted
+      .filter((s) => (units.get(s.id) || 0) % 2 === 1)
+      .map((s) => s.id)
+    const crossPaired = 2 * Math.floor(oddSeatIds.length / 2) // cuantos impares se emparejan
+
+    const charge = new Map()
+    for (const s of occSeatsSorted) {
+      const q = units.get(s.id) || 0
+      if (q === 0) continue
+      let c = Math.floor(q / 2) * price // pares propios: paga 1 por cada 2
+      if (q % 2 === 1) {
+        const rank = oddSeatIds.indexOf(s.id) + 1 // 1-based
+        c += rank <= crossPaired ? price / 2 : price // emparejado -> mitad; solo -> completo
+      }
+      charge.set(s.id, c)
+    }
+    result[k] = { units, charge }
+  }
+  return result
 }
 
 const ITEM_FIELDS =
@@ -67,32 +101,42 @@ export async function fetchTableOrder(tableId) {
   const openedAt = data.opened_at
   const allSeats = data.table_seats ?? []
 
-  // Unidades totales por producto en promo, sobre la ocupacion actual
-  // (sub-cuentas creadas desde opened_at; items activos o ya pagados).
-  const groupQty = {}
-  if (agrupar) {
-    for (const s of allSeats) {
-      if (openedAt && s.created_at < openedAt) continue
-      for (const it of s.order_items ?? []) {
-        if (it.promo_tipo === '2x1' && (it.estado === 'activo' || it.estado === 'pagado')) {
-          groupQty[groupKey(it)] = (groupQty[groupKey(it)] || 0) + it.cantidad
-        }
-      }
-    }
+  // Sub-cuentas de la ocupacion actual (creadas desde opened_at), ordenadas
+  const occSeatsSorted = allSeats
+    .filter((s) => !openedAt || s.created_at >= openedAt)
+    .slice()
+    .sort((a, b) => a.created_at.localeCompare(b.created_at))
+
+  const grouped = agrupar ? buildGroupedCharges(occSeatsSorted) : null
+
+  // Precio efectivo de una linea. Con agrupacion, reparte el cargo del
+  // producto (a nivel sub-cuenta) entre las lineas de esa sub-cuenta.
+  const chargedForItem = (it, seatId) => {
+    if (it.promo_tipo !== '2x1') return lineOriginal(it)
+    if (!agrupar) return lineTotal(it)
+    const info = grouped[groupKey(it)]
+    const q = info?.units.get(seatId)
+    const c = info?.charge.get(seatId)
+    if (!q || c == null) return lineTotal(it)
+    return Math.round((c * it.cantidad) / q)
   }
-  const priceFn = agrupar ? (it) => lineTotalGrouped(it, groupQty) : lineTotal
 
   const seats = allSeats
     .filter((s) => s.estado === 'abierto')
     .sort((a, b) => a.created_at.localeCompare(b.created_at))
     .map((s) => {
       const items = sortByCreated(activeItems(s.order_items))
+      let total = 0
+      for (const it of items) {
+        it.charged = chargedForItem(it, s.id)
+        total += it.charged
+      }
       return {
         id: s.id,
         nombre: s.nombre,
         items,
         courtesies: sortByCreated(s.courtesy_items),
-        total: withCharged(items, priceFn),
+        total,
       }
     })
 

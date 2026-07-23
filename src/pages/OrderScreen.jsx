@@ -18,7 +18,7 @@ import {
   cancelBarSeat,
   fetchTableOrder,
 } from '../lib/orders'
-import { payTableSeat, payTable, payBarSeat } from '../lib/payments'
+import { payTableSeat, payWholeTable, payBarSeat } from '../lib/payments'
 import { renameBarSeatClient, setTableGroupPromos } from '../lib/layout'
 import { listActivePromotions, activePromoForProduct } from '../lib/promotions'
 
@@ -178,17 +178,17 @@ function OrderScreen() {
     setActionError('')
     try {
       if (tipo === 'barra') {
-        await payBarSeat(order.id, metodo, employee.id)
+        await payBarSeat(order.id, metodo, employee.id, order.total)
         navigate('/', { replace: true })
         return
       }
       if (payTarget.scope === 'mesa') {
-        await payTable(order.id, metodo, employee.id)
+        await payWholeTable(order.seats, metodo, employee.id)
         navigate('/', { replace: true })
         return
       }
       // Cobro de una sub-cuenta: puede o no ser la ultima
-      await payTableSeat(payTarget.id, metodo, employee.id)
+      await payTableSeat(payTarget.id, metodo, employee.id, payTarget.monto)
       const fresh = await fetchTableOrder(order.id)
       if (fresh.estado === 'libre') {
         navigate('/', { replace: true })

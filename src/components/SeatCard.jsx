@@ -86,7 +86,7 @@ function SeatCard({ seat, onAddProduct, onChangeQty, onVoidItem, onRename, onPay
               </div>
 
               <span className="w-24 shrink-0 text-right">
-                {item.promo_tipo === '2x1' ? (
+                {item.promo_tipo === '2x1' && item.charged < lineOriginal(item) ? (
                   <>
                     <span className="block text-xs text-slate-500 line-through">
                       {money(lineOriginal(item))}
