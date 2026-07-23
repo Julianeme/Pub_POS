@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import TopBar from '../components/TopBar'
 import ExpenseModal from '../components/ExpenseModal'
 import CourtesyModal from '../components/CourtesyModal'
@@ -143,6 +143,12 @@ function FloorMap() {
         >
           🎁 Regalar cortesia
         </button>
+        <Link
+          to="/caja"
+          className="flex-1 rounded-xl bg-slate-700 py-3 text-center font-semibold text-white hover:bg-slate-600"
+        >
+          💵 Caja
+        </Link>
       </div>
 
       <main className="mx-auto max-w-5xl space-y-8 p-4">

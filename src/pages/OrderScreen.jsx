@@ -20,6 +20,7 @@ import {
   fetchTableOrder,
 } from '../lib/orders'
 import { payTableSeat, payWholeTable, payBarSeat } from '../lib/payments'
+import { addTip } from '../lib/tips'
 import { renameBarSeatClient, setTableGroupPromos } from '../lib/layout'
 import { listActivePromotions, activePromoForProduct } from '../lib/promotions'
 
@@ -182,22 +183,27 @@ function OrderScreen() {
   // Ejecuta el cobro segun el destino y navega al mapa si la mesa/puesto
   // quedo libre (barra siempre se libera; mesa solo cuando no quedan
   // sub-cuentas abiertas).
-  const executePay = async (metodo) => {
+  const executePay = async (metodo, propina = 0) => {
     setBusy(true)
     setActionError('')
     try {
       if (tipo === 'barra') {
         await payBarSeat(order.id, metodo, employee.id, order.total)
+        if (propina > 0)
+          await addTip({ monto: propina, metodo, barSeatId: order.id, empleadoId: employee.id })
         navigate('/', { replace: true })
         return
       }
       if (payTarget.scope === 'mesa') {
         await payWholeTable(order.seats, metodo, employee.id)
+        if (propina > 0) await addTip({ monto: propina, metodo, empleadoId: employee.id })
         navigate('/', { replace: true })
         return
       }
       // Cobro de una sub-cuenta: puede o no ser la ultima
       await payTableSeat(payTarget.id, metodo, employee.id, payTarget.monto)
+      if (propina > 0)
+        await addTip({ monto: propina, metodo, tableSeatId: payTarget.id, empleadoId: employee.id })
       const fresh = await fetchTableOrder(order.id)
       if (fresh.estado === 'libre') {
         navigate('/', { replace: true })
