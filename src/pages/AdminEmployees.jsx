@@ -195,36 +195,48 @@ function AdminEmployees() {
               {editing === 'new' ? 'Nuevo empleado' : 'Editar empleado'}
             </h2>
 
-            <input
-              className={inputClass}
-              placeholder="Nombre"
-              value={form.nombre}
-              onChange={(e) => setForm({ ...form, nombre: e.target.value })}
-            />
-            <input
-              className={inputClass}
-              placeholder="Código (ej. 0002)"
-              inputMode="numeric"
-              value={form.codigo}
-              onChange={(e) => setForm({ ...form, codigo: e.target.value })}
-            />
-            <input
-              className={inputClass}
-              placeholder="PIN"
-              inputMode="numeric"
-              value={form.pin}
-              onChange={(e) => setForm({ ...form, pin: e.target.value })}
-            />
-            <select
-              className={inputClass}
-              value={form.rol}
-              onChange={(e) => setForm({ ...form, rol: e.target.value })}
-            >
-              <option value="admin">Admin</option>
-              <option value="encargado">Encargado</option>
-              <option value="cajero">Cajero</option>
-              <option value="mesero">Mesero</option>
-            </select>
+            <label className="block text-sm text-slate-300">
+              Nombre
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="Ej. Juan Perez"
+                value={form.nombre}
+                onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+              />
+            </label>
+            <label className="block text-sm text-slate-300">
+              Codigo de empleado
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="Ej. 0002"
+                inputMode="numeric"
+                value={form.codigo}
+                onChange={(e) => setForm({ ...form, codigo: e.target.value })}
+              />
+            </label>
+            <label className="block text-sm text-slate-300">
+              PIN
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="Ej. 1234"
+                inputMode="numeric"
+                value={form.pin}
+                onChange={(e) => setForm({ ...form, pin: e.target.value })}
+              />
+            </label>
+            <label className="block text-sm text-slate-300">
+              Rol
+              <select
+                className={`${inputClass} mt-1`}
+                value={form.rol}
+                onChange={(e) => setForm({ ...form, rol: e.target.value })}
+              >
+                <option value="admin">Admin</option>
+                <option value="encargado">Encargado</option>
+                <option value="cajero">Cajero</option>
+                <option value="mesero">Mesero</option>
+              </select>
+            </label>
 
             {/* Permiso de cortesias (admin y encargado ya pueden por su rol) */}
             {form.rol !== 'admin' && form.rol !== 'encargado' && (

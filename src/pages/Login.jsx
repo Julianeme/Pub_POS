@@ -88,9 +88,10 @@ function Login() {
         <button
           type="button"
           onClick={handleBack}
-          className="text-slate-400 underline hover:text-white"
+          className="inline-flex items-center gap-2 rounded-xl bg-slate-700 px-5 py-3 text-base font-semibold text-white hover:bg-slate-600"
         >
-          Cambiar código
+          <span className="text-2xl leading-none">↩</span>
+          Volver (cambiar codigo)
         </button>
       )}
     </main>
