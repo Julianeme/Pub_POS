@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEmployee } from '../context/EmployeeContext'
+import BackButton from '../components/BackButton'
 import { money } from '../lib/format'
+import { canSeeAllReports } from '../lib/permissions'
 import { listClosings } from '../lib/closings'
 
 const MESES = [
@@ -14,16 +16,19 @@ function mesLabel(key) {
 }
 
 function ReportsScreen() {
+  const { employee } = useEmployee()
+  const soloPropios = !canSeeAllReports(employee)
+
   const [closings, setClosings] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    listClosings()
+    listClosings(soloPropios ? { soloEmpleadoId: employee.id } : {})
       .then(setClosings)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [soloPropios, employee.id])
 
   // Agrupa por mes de la fecha de cierre
   const grupos = {}
@@ -42,11 +47,15 @@ function ReportsScreen() {
     <main className="min-h-screen bg-slate-900 p-6">
       <div className="mx-auto max-w-3xl space-y-5">
         <div>
-          <Link to="/cierre" className="text-sm text-slate-400 hover:text-white">
-            ← Volver al cierre
-          </Link>
+          <div className="mb-3">
+            <BackButton to="/cierre" />
+          </div>
           <h1 className="text-2xl font-bold text-white">Reportes</h1>
-          <p className="text-sm text-slate-400">Cierres de caja agrupados por mes.</p>
+          <p className="text-sm text-slate-400">
+            {soloPropios
+              ? 'Cierres en los que participaste, agrupados por mes.'
+              : 'Cierres de caja agrupados por mes.'}
+          </p>
         </div>
 
         {error && <p className="font-medium text-red-400">{error}</p>}

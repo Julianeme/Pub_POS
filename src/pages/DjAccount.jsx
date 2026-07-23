@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useEmployee } from '../context/EmployeeContext'
 import AmountModal from '../components/AmountModal'
 import ProductPicker from '../components/ProductPicker'
 import { useConfirm } from '../components/ConfirmModal'
+import BackButton from '../components/BackButton'
 import { money } from '../lib/format'
 import {
   getOpenDjSession,
@@ -81,9 +81,9 @@ function DjAccount() {
     <main className="min-h-screen bg-slate-900 p-6">
       <div className="mx-auto max-w-2xl space-y-6">
         <div>
-          <Link to="/caja" className="text-sm text-slate-400 hover:text-white">
-            ← Volver a caja
-          </Link>
+          <div className="mb-3">
+            <BackButton to="/caja" />
+          </div>
           <h1 className="text-2xl font-bold text-white">🎧 DJ residente</h1>
         </div>
 

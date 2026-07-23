@@ -4,11 +4,12 @@ import { useEmployee } from '../context/EmployeeContext'
 import AmountModal from '../components/AmountModal'
 import ProductQtyModal from '../components/ProductQtyModal'
 import TipPayoutModal from '../components/TipPayoutModal'
+import BackButton from '../components/BackButton'
 import { money } from '../lib/format'
 import { listEmployees } from '../lib/employees'
 import { addExpense } from '../lib/expenses'
 import { addCashMovement } from '../lib/cash'
-import { addProductLoss } from '../lib/losses'
+import { addProductLoss, MERMA_MOTIVOS } from '../lib/losses'
 import { getTipsSummary, createTipPayout, listTipPayouts } from '../lib/tips'
 
 // Pantalla de caja: base, retiros, gastos, DJ, mermas, consumo interno y
@@ -78,9 +79,9 @@ function Caja() {
     <main className="min-h-screen bg-slate-900 p-6">
       <div className="mx-auto max-w-3xl space-y-6">
         <div>
-          <Link to="/" className="text-sm text-slate-400 hover:text-white">
-            ← Volver al mapa
-          </Link>
+          <div className="mb-3">
+            <BackButton to="/" />
+          </div>
           <h1 className="text-2xl font-bold text-white">Caja y gastos</h1>
         </div>
 
@@ -225,6 +226,7 @@ function Caja() {
           icon="💥"
           title="Merma / rotura"
           confirmLabel="Registrar merma"
+          motivos={MERMA_MOTIVOS}
           onSave={(productId, cantidad, nota) =>
             run(
               () =>

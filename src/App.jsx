@@ -47,7 +47,7 @@ function App() {
           <Route
             path="/caja"
             element={
-              <RequireAuth>
+              <RequireAuth roles={['admin', 'encargado', 'cajero']}>
                 <Caja />
               </RequireAuth>
             }
@@ -55,7 +55,7 @@ function App() {
           <Route
             path="/dj"
             element={
-              <RequireAuth>
+              <RequireAuth roles={['admin', 'encargado', 'cajero']}>
                 <DjAccount />
               </RequireAuth>
             }
@@ -63,7 +63,7 @@ function App() {
           <Route
             path="/cierre"
             element={
-              <RequireAuth roles={['admin', 'cajero']}>
+              <RequireAuth roles={['admin', 'encargado']}>
                 <CashClosing />
               </RequireAuth>
             }
@@ -71,7 +71,7 @@ function App() {
           <Route
             path="/reportes"
             element={
-              <RequireAuth roles={['admin', 'cajero']}>
+              <RequireAuth roles={['admin', 'encargado']}>
                 <ReportsScreen />
               </RequireAuth>
             }

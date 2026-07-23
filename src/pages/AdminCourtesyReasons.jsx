@@ -6,6 +6,7 @@ import {
   deleteCourtesyReason,
 } from '../lib/courtesies'
 import { useConfirm } from '../components/ConfirmModal'
+import BackButton from '../components/BackButton'
 
 // Administracion de motivos de cortesia (solo admin). "Otro" no se lista
 // aqui: es una opcion fija del sistema con campo abierto.
@@ -74,9 +75,9 @@ function AdminCourtesyReasons() {
     <main className="min-h-screen bg-slate-900 p-6">
       <div className="mx-auto max-w-2xl space-y-6">
         <div>
-          <Link to="/" className="text-sm text-slate-400 hover:text-white">
-            ← Volver al mapa
-          </Link>
+          <div className="mb-3">
+            <BackButton to="/" />
+          </div>
           <h1 className="text-2xl font-bold text-white">Motivos de cortesia</h1>
           <p className="text-sm text-slate-400">
             Estos motivos aparecen al regalar una cortesia. "Otro" siempre esta

@@ -13,6 +13,7 @@ import {
 import { CATEGORIAS, listActiveProducts } from '../lib/products'
 import { money } from '../lib/format'
 import { useConfirm } from '../components/ConfirmModal'
+import BackButton from '../components/BackButton'
 
 const EMPTY_FORM = {
   nombre: '',
@@ -166,9 +167,9 @@ function AdminPromotions() {
       <div className="mx-auto max-w-3xl space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <Link to="/" className="text-sm text-slate-400 hover:text-white">
-              ← Volver al mapa
-            </Link>
+            <div className="mb-3">
+              <BackButton to="/" />
+            </div>
             <h1 className="text-2xl font-bold text-white">Promociones</h1>
             <p className="text-sm text-slate-400">
               2x1 o % de descuento, recurrentes por dia o en una fecha puntual. Se

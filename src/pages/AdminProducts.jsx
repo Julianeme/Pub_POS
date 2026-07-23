@@ -10,6 +10,7 @@ import {
 } from '../lib/products'
 import { money } from '../lib/format'
 import { useConfirm } from '../components/ConfirmModal'
+import BackButton from '../components/BackButton'
 
 const EMPTY_FORM = { nombre: '', categoria: 'coctel', precio_publico: '', precio_costo: '' }
 
@@ -140,9 +141,9 @@ function AdminProducts() {
       <div className="mx-auto max-w-3xl space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <Link to="/" className="text-sm text-slate-400 hover:text-white">
-              ← Volver al mapa
-            </Link>
+            <div className="mb-3">
+              <BackButton to="/" />
+            </div>
             <h1 className="text-2xl font-bold text-white">Productos</h1>
           </div>
           <button

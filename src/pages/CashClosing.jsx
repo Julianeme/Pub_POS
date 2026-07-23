@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useEmployee } from '../context/EmployeeContext'
 import { useConfirm } from '../components/ConfirmModal'
+import BackButton from '../components/BackButton'
 import { money } from '../lib/format'
+import { canSeeCosts } from '../lib/permissions'
 import { getOpenClosing, openClosing, computeSummary, closeClosing } from '../lib/closings'
 
 // Fila etiqueta/valor
@@ -95,9 +97,9 @@ function CashClosing() {
       <div className="mx-auto max-w-2xl space-y-5">
         <div className="flex items-center justify-between">
           <div>
-            <Link to="/" className="text-sm text-slate-400 hover:text-white">
-              ← Volver al mapa
-            </Link>
+            <div className="mb-3">
+              <BackButton to="/" />
+            </div>
             <h1 className="text-2xl font-bold text-white">Cierre de caja</h1>
           </div>
           <Link
@@ -177,15 +179,21 @@ function CashClosing() {
               <Row label="Liquidadas a empleados" value={money(summary.propinas.liquidadas)} tone="red" />
             </section>
 
-            {/* Cortesias / mermas / consumo (control, a costo) */}
+            {/* Cortesias / mermas / consumo (control). El costo solo lo ve admin. */}
             <section className="rounded-2xl bg-slate-800 p-5">
               <h2 className="mb-2 font-bold text-white">Cortesias y perdidas (control)</h2>
-              <Row
-                label="Cortesias"
-                value={`${money(summary.cortesias.venta)} venta · ${money(summary.cortesias.costo)} costo`}
-              />
-              <Row label="Mermas / roturas (costo)" value={money(summary.mermasCosto)} />
-              <Row label="Consumo interno (costo)" value={money(summary.consumoCosto)} />
+              {canSeeCosts(employee) ? (
+                <>
+                  <Row
+                    label="Cortesias"
+                    value={`${money(summary.cortesias.venta)} venta · ${money(summary.cortesias.costo)} costo`}
+                  />
+                  <Row label="Mermas / roturas (costo)" value={money(summary.mermasCosto)} />
+                  <Row label="Consumo interno (costo)" value={money(summary.consumoCosto)} />
+                </>
+              ) : (
+                <Row label="Cortesias (valor venta)" value={money(summary.cortesias.venta)} />
+              )}
             </section>
 
             {/* Cuadre de efectivo */}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useEmployee } from '../context/EmployeeContext'
 import { useConfirm } from '../components/ConfirmModal'
+import BackButton from '../components/BackButton'
 import {
   listEmployees,
   createEmployee,
@@ -9,9 +10,16 @@ import {
   deleteEmployee,
 } from '../lib/employees'
 
-const EMPTY_FORM = { nombre: '', codigo: '', pin: '', rol: 'mesero' }
+const EMPTY_FORM = {
+  nombre: '',
+  codigo: '',
+  pin: '',
+  rol: 'mesero',
+  puedeDarCortesia: false,
+  cortesiaHasta: '',
+}
 
-const ROL_LABELS = { admin: 'Admin', mesero: 'Mesero', cajero: 'Cajero' }
+const ROL_LABELS = { admin: 'Admin', mesero: 'Mesero', cajero: 'Cajero', encargado: 'Encargado' }
 
 function AdminEmployees() {
   const { employee: current } = useEmployee()
@@ -50,7 +58,14 @@ function AdminEmployees() {
   }
 
   const openEdit = (emp) => {
-    setForm({ nombre: emp.nombre, codigo: emp.codigo, pin: emp.pin, rol: emp.rol })
+    setForm({
+      nombre: emp.nombre,
+      codigo: emp.codigo,
+      pin: emp.pin,
+      rol: emp.rol,
+      puedeDarCortesia: emp.puede_dar_cortesia ?? false,
+      cortesiaHasta: emp.cortesia_hasta ?? '',
+    })
     setFormError('')
     setEditing(emp.id)
   }
@@ -109,9 +124,9 @@ function AdminEmployees() {
       <div className="mx-auto max-w-3xl">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <Link to="/" className="text-sm text-slate-400 hover:text-white">
-              ← Volver al inicio
-            </Link>
+            <div className="mb-3">
+              <BackButton to="/" />
+            </div>
             <h1 className="text-2xl font-bold text-white">Empleados</h1>
           </div>
           <button
@@ -206,9 +221,36 @@ function AdminEmployees() {
               onChange={(e) => setForm({ ...form, rol: e.target.value })}
             >
               <option value="admin">Admin</option>
-              <option value="mesero">Mesero</option>
+              <option value="encargado">Encargado</option>
               <option value="cajero">Cajero</option>
+              <option value="mesero">Mesero</option>
             </select>
+
+            {/* Permiso de cortesias (admin y encargado ya pueden por su rol) */}
+            {form.rol !== 'admin' && form.rol !== 'encargado' && (
+              <div className="rounded-xl bg-slate-900/40 p-4">
+                <label className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    className="h-5 w-5"
+                    checked={form.puedeDarCortesia}
+                    onChange={(e) => setForm({ ...form, puedeDarCortesia: e.target.checked })}
+                  />
+                  <span className="text-sm font-semibold text-white">Puede dar cortesias</span>
+                </label>
+                {form.puedeDarCortesia && (
+                  <label className="mt-3 block text-sm text-slate-300">
+                    Habilitado hasta (vacio = indefinido)
+                    <input
+                      type="date"
+                      className={`${inputClass} mt-1`}
+                      value={form.cortesiaHasta}
+                      onChange={(e) => setForm({ ...form, cortesiaHasta: e.target.value })}
+                    />
+                  </label>
+                )}
+              </div>
+            )}
 
             {formError && <p className="font-medium text-red-400">{formError}</p>}
 

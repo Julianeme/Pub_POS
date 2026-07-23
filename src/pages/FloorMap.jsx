@@ -3,11 +3,15 @@ import { Link, useNavigate } from 'react-router-dom'
 import TopBar from '../components/TopBar'
 import ExpenseModal from '../components/ExpenseModal'
 import CourtesyModal from '../components/CourtesyModal'
+import ProductQtyModal from '../components/ProductQtyModal'
+import Calculator from '../components/Calculator'
 import { useBarLayout } from '../hooks/useBarLayout'
 import { useEmployee } from '../context/EmployeeContext'
 import { openTable, occupyBarSeat } from '../lib/layout'
 import { addIceExpense } from '../lib/expenses'
 import { addCourtesies } from '../lib/courtesies'
+import { addProductLoss, MERMA_MOTIVOS } from '../lib/losses'
+import { canGiveCourtesy, canBuyIce, canManageCash } from '../lib/permissions'
 
 // Pantalla principal: mapa de pisos con mesas y barra con puestos.
 // Verde = libre, rojo = ocupada/o. Tocar algo ocupado abre su pedido.
@@ -22,7 +26,7 @@ function FloorMap() {
   const [busy, setBusy] = useState(false)
   const [actionError, setActionError] = useState('')
 
-  // Modales de acciones fijas: null | 'hielo' | 'cortesia'
+  // Modales de acciones fijas: null | 'hielo' | 'cortesia' | 'merma' | 'calc'
   const [opModal, setOpModal] = useState(null)
   const [opBusy, setOpBusy] = useState(false)
   const [toast, setToast] = useState('')
@@ -51,6 +55,19 @@ function FloorMap() {
       await addCourtesies({ items, empleadoId: employee.id, motivo, motivoDetalle })
       setOpModal(null)
       showToast('Cortesia registrada')
+    } catch (err) {
+      setActionError(err.message)
+    } finally {
+      setOpBusy(false)
+    }
+  }
+
+  const handleMerma = async (productId, cantidad, nota) => {
+    setOpBusy(true)
+    try {
+      await addProductLoss({ tipo: 'merma', productId, cantidad, descripcion: nota, empleadoId: employee.id })
+      setOpModal(null)
+      showToast('Merma registrada')
     } catch (err) {
       setActionError(err.message)
     } finally {
@@ -121,34 +138,60 @@ function FloorMap() {
     <div className="min-h-screen bg-slate-900">
       <TopBar />
 
-      {/* Acciones fijas disponibles durante el servicio */}
-      <div className="sticky top-0 z-10 flex gap-3 bg-slate-900/95 px-4 py-3 backdrop-blur">
+      {/* Acciones fijas disponibles durante el servicio (segun rol) */}
+      <div className="sticky top-0 z-10 flex flex-wrap gap-2 bg-slate-900/95 px-4 py-3 backdrop-blur">
         <button
           type="button"
           onClick={() => {
             setActionError('')
-            setOpModal('hielo')
+            setOpModal('merma')
           }}
-          className="flex-1 rounded-xl bg-cyan-700 py-3 font-semibold text-white hover:bg-cyan-600"
+          className="flex-1 rounded-xl bg-amber-700 py-3 font-semibold text-white hover:bg-amber-600"
         >
-          🧊 Comprar hielo
+          💥 Merma / rotura
         </button>
+        {canGiveCourtesy(employee) && (
+          <button
+            type="button"
+            onClick={() => {
+              setActionError('')
+              setOpModal('cortesia')
+            }}
+            className="flex-1 rounded-xl bg-purple-700 py-3 font-semibold text-white hover:bg-purple-600"
+          >
+            🎁 Cortesia
+          </button>
+        )}
+        {canBuyIce(employee) && (
+          <button
+            type="button"
+            onClick={() => {
+              setActionError('')
+              setOpModal('hielo')
+            }}
+            className="flex-1 rounded-xl bg-cyan-700 py-3 font-semibold text-white hover:bg-cyan-600"
+          >
+            🧊 Hielo
+          </button>
+        )}
         <button
           type="button"
           onClick={() => {
             setActionError('')
-            setOpModal('cortesia')
+            setOpModal('calc')
           }}
-          className="flex-1 rounded-xl bg-purple-700 py-3 font-semibold text-white hover:bg-purple-600"
+          className="flex-1 rounded-xl bg-slate-700 py-3 font-semibold text-white hover:bg-slate-600"
         >
-          🎁 Regalar cortesia
+          🧮 Calculadora
         </button>
-        <Link
-          to="/caja"
-          className="flex-1 rounded-xl bg-slate-700 py-3 text-center font-semibold text-white hover:bg-slate-600"
-        >
-          💵 Caja
-        </Link>
+        {canManageCash(employee) && (
+          <Link
+            to="/caja"
+            className="flex-1 rounded-xl bg-slate-700 py-3 text-center font-semibold text-white hover:bg-slate-600"
+          >
+            💵 Caja y Gastos
+          </Link>
+        )}
       </div>
 
       <main className="mx-auto max-w-5xl space-y-8 p-4">
@@ -281,6 +324,22 @@ function FloorMap() {
       {opModal === 'cortesia' && (
         <CourtesyModal onSave={handleCourtesy} onClose={() => setOpModal(null)} busy={opBusy} />
       )}
+
+      {/* Merma / rotura */}
+      {opModal === 'merma' && (
+        <ProductQtyModal
+          icon="💥"
+          title="Merma / rotura"
+          confirmLabel="Registrar merma"
+          motivos={MERMA_MOTIVOS}
+          onSave={handleMerma}
+          onClose={() => setOpModal(null)}
+          busy={opBusy}
+        />
+      )}
+
+      {/* Calculadora */}
+      {opModal === 'calc' && <Calculator onClose={() => setOpModal(null)} />}
 
       {/* Aviso temporal de exito */}
       {toast && (

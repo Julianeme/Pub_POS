@@ -131,13 +131,19 @@ export async function closeClosing({ id, openedAt, efectivoContado, notas, emple
 
 // ---- Reportes ----
 
-export async function listClosings(limit = 100) {
-  const { data, error } = await supabase
+// Si se pasa soloEmpleadoId, devuelve unicamente los cierres que ese
+// empleado abrio o cerro (para el encargado, que no ve otros dias).
+export async function listClosings({ soloEmpleadoId = null, limit = 100 } = {}) {
+  let q = supabase
     .from('cash_closings')
     .select('*')
     .eq('estado', 'cerrada')
     .order('closed_at', { ascending: false })
     .limit(limit)
+  if (soloEmpleadoId) {
+    q = q.or(`opened_by.eq.${soloEmpleadoId},closed_by.eq.${soloEmpleadoId}`)
+  }
+  const { data, error } = await q
   if (error) throw new Error('No se pudieron cargar los cierres')
   return data ?? []
 }

@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useEmployee } from '../context/EmployeeContext'
+import { canCloseCash } from '../lib/permissions'
 
 const ROL_LABELS = { admin: 'Admin', mesero: 'Mesero', cajero: 'Cajero' }
 
@@ -54,7 +55,7 @@ function TopBar() {
             </Link>
           </>
         )}
-        {(employee.rol === 'admin' || employee.rol === 'cajero') && (
+        {canCloseCash(employee) && (
           <Link
             to="/cierre"
             className="rounded-lg bg-slate-700 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-600"

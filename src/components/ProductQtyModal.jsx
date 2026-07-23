@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { CATEGORIAS, listActiveProducts } from '../lib/products'
 import { money } from '../lib/format'
 
-// Modal para elegir UN producto del catalogo + cantidad (+ nota opcional).
+// Modal para elegir UN producto del catalogo + cantidad (+ motivo/nota).
 // Reutilizado por merma/rotura y consumo interno.
+// motivos (opcional): lista de chips rapidos; si se elige uno, va como nota.
 // onSave(productId, cantidad, nota) — onClose() para cancelar.
-function ProductQtyModal({ icon = '📦', title, confirmLabel = 'Registrar', onSave, onClose, busy }) {
+function ProductQtyModal({ icon = '📦', title, confirmLabel = 'Registrar', motivos, onSave, onClose, busy }) {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -13,6 +14,11 @@ function ProductQtyModal({ icon = '📦', title, confirmLabel = 'Registrar', onS
   const [selected, setSelected] = useState(null)
   const [cantidad, setCantidad] = useState(1)
   const [nota, setNota] = useState('')
+  const [motivo, setMotivo] = useState('') // chip elegido (o 'Otro')
+
+  const esOtro = motivo === 'Otro'
+  // Texto final del motivo/nota que se guarda
+  const notaFinal = motivos ? (esOtro ? nota.trim() : motivo) : nota.trim()
 
   useEffect(() => {
     listActiveProducts()
@@ -81,12 +87,50 @@ function ProductQtyModal({ icon = '📦', title, confirmLabel = 'Registrar', onS
           </div>
         </div>
 
-        <input
-          className="w-full rounded-lg bg-slate-700 px-4 py-3 text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Nota (opcional, ej. se cayo de la barra)"
-          value={nota}
-          onChange={(e) => setNota(e.target.value)}
-        />
+        {/* Motivo rapido (chips) o nota libre */}
+        {motivos ? (
+          <div>
+            <div className="flex flex-wrap gap-2">
+              {motivos.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMotivo(m)}
+                  className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                    motivo === m ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  {m}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setMotivo('Otro')}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                  esOtro ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                }`}
+              >
+                Otro
+              </button>
+            </div>
+            {esOtro && (
+              <input
+                autoFocus
+                className="mt-2 w-full rounded-lg bg-slate-700 px-4 py-3 text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Escribe el motivo"
+                value={nota}
+                onChange={(e) => setNota(e.target.value)}
+              />
+            )}
+          </div>
+        ) : (
+          <input
+            className="w-full rounded-lg bg-slate-700 px-4 py-3 text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Nota (opcional)"
+            value={nota}
+            onChange={(e) => setNota(e.target.value)}
+          />
+        )}
 
         <div className="flex items-center gap-3 border-t border-slate-700 pt-4">
           <div className="flex items-center gap-2">
@@ -110,8 +154,8 @@ function ProductQtyModal({ icon = '📦', title, confirmLabel = 'Registrar', onS
           </div>
           <button
             type="button"
-            disabled={!selected || busy}
-            onClick={() => onSave(selected.id, cantidad, nota.trim())}
+            disabled={!selected || busy || (motivos && !notaFinal)}
+            onClick={() => onSave(selected.id, cantidad, notaFinal)}
             className="h-12 flex-1 rounded-xl bg-green-600 font-semibold text-white hover:bg-green-500 disabled:opacity-40"
           >
             {selected ? `${confirmLabel}: ${cantidad} × ${selected.nombre}` : 'Elige un producto'}

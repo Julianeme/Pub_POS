@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useBarLayout } from '../hooks/useBarLayout'
 import { addTable, deleteTable, addBarSeat, deleteBarSeat } from '../lib/layout'
 import { useConfirm } from '../components/ConfirmModal'
+import BackButton from '../components/BackButton'
 
 // Configuracion (solo admin): agregar o eliminar mesas por piso y puestos de barra.
 function AdminTables() {
@@ -73,9 +74,9 @@ function AdminTables() {
     <main className="min-h-screen bg-slate-900 p-6">
       <div className="mx-auto max-w-3xl space-y-8">
         <div>
-          <Link to="/" className="text-sm text-slate-400 hover:text-white">
-            ← Volver al mapa
-          </Link>
+          <div className="mb-3">
+            <BackButton to="/" />
+          </div>
           <h1 className="text-2xl font-bold text-white">Mesas y barra</h1>
           <p className="text-sm text-slate-400">
             Agrega o elimina mesas y puestos. Solo se pueden eliminar si están libres.

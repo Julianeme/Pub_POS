@@ -7,6 +7,7 @@ import SeatCard from '../components/SeatCard'
 import PaymentModal from '../components/PaymentModal'
 import CourtesyModal from '../components/CourtesyModal'
 import { useConfirm } from '../components/ConfirmModal'
+import BackButton from '../components/BackButton'
 import { addCourtesies } from '../lib/courtesies'
 import { money } from '../lib/format'
 import {
@@ -23,6 +24,7 @@ import { payTableSeat, payWholeTable, payBarSeat } from '../lib/payments'
 import { addTip } from '../lib/tips'
 import { renameBarSeatClient, setTableGroupPromos } from '../lib/layout'
 import { listActivePromotions, activePromoForProduct } from '../lib/promotions'
+import { canGiveCourtesy } from '../lib/permissions'
 
 // Pantalla de pedido de una mesa (con sub-cuentas) o un puesto de barra.
 // Ruta: /pedido/mesa/:id  |  /pedido/barra/:id
@@ -224,12 +226,7 @@ function OrderScreen() {
     <div className="min-h-screen bg-slate-900">
       <header className="flex flex-wrap items-center justify-between gap-3 bg-slate-800 px-4 py-3">
         <div className="flex items-center gap-3">
-          <Link
-            to="/"
-            className="rounded-lg bg-slate-700 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-600"
-          >
-            ← Mapa
-          </Link>
+          <BackButton to="/" />
           <h1 className="text-xl font-bold text-white">
             {order ? order.nombre : 'Cargando...'}
             {tipo === 'barra' && order?.seats[0] && (
@@ -307,7 +304,7 @@ function OrderScreen() {
                   onVoidItem={handleVoidItem}
                   onRename={() => openRename(seat)}
                   onPay={() => openPaySeat(seat)}
-                  onCourtesy={() => requestCourtesy(seat)}
+                  onCourtesy={canGiveCourtesy(employee) ? () => requestCourtesy(seat) : undefined}
                 />
               ))}
             </div>
