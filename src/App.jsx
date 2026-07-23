@@ -10,12 +10,15 @@ import AdminPromotions from './pages/AdminPromotions'
 import OrderScreen from './pages/OrderScreen'
 import Caja from './pages/Caja'
 import DjAccount from './pages/DjAccount'
+import CashClosing from './pages/CashClosing'
+import ReportsScreen from './pages/ReportsScreen'
 
-// Protege una ruta: exige sesión, y opcionalmente un rol específico.
-function RequireAuth({ children, rol }) {
+// Protege una ruta: exige sesión, y opcionalmente uno o varios roles.
+function RequireAuth({ children, rol, roles }) {
   const { employee } = useEmployee()
   if (!employee) return <Navigate to="/login" replace />
-  if (rol && employee.rol !== rol) return <Navigate to="/" replace />
+  const permitidos = roles ?? (rol ? [rol] : null)
+  if (permitidos && !permitidos.includes(employee.rol)) return <Navigate to="/" replace />
   return children
 }
 
@@ -54,6 +57,22 @@ function App() {
             element={
               <RequireAuth>
                 <DjAccount />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/cierre"
+            element={
+              <RequireAuth roles={['admin', 'cajero']}>
+                <CashClosing />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/reportes"
+            element={
+              <RequireAuth roles={['admin', 'cajero']}>
+                <ReportsScreen />
               </RequireAuth>
             }
           />
