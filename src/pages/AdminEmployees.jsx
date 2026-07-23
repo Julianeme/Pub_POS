@@ -61,7 +61,7 @@ function AdminEmployees() {
     setForm({
       nombre: emp.nombre,
       codigo: emp.codigo,
-      pin: emp.pin,
+      pin: '', // el PIN ya no se precarga (esta hasheado); vacio = no cambiar
       rol: emp.rol,
       puedeDarCortesia: emp.puede_dar_cortesia ?? false,
       cortesiaHasta: emp.cortesia_hasta ?? '',
@@ -73,12 +73,20 @@ function AdminEmployees() {
   const handleSave = async (e) => {
     e.preventDefault()
     const { nombre, codigo, pin } = form
-    if (!nombre.trim() || !codigo.trim() || !pin.trim()) {
-      setFormError('Todos los campos son obligatorios')
+    if (!nombre.trim() || !codigo.trim()) {
+      setFormError('Nombre y código son obligatorios')
       return
     }
-    if (!/^\d+$/.test(codigo) || !/^\d+$/.test(pin)) {
-      setFormError('Código y PIN deben ser solo números')
+    if (editing === 'new' && !pin.trim()) {
+      setFormError('El PIN es obligatorio')
+      return
+    }
+    if (!/^\d+$/.test(codigo)) {
+      setFormError('El código debe ser solo números')
+      return
+    }
+    if (pin.trim() && !/^\d+$/.test(pin)) {
+      setFormError('El PIN debe ser solo números')
       return
     }
     setSaving(true)
@@ -215,10 +223,10 @@ function AdminEmployees() {
               />
             </label>
             <label className="block text-sm text-slate-300">
-              PIN
+              PIN {editing !== 'new' && <span className="text-slate-500">(vacio = no cambiar)</span>}
               <input
                 className={`${inputClass} mt-1`}
-                placeholder="Ej. 1234"
+                placeholder={editing === 'new' ? 'Ej. 1234' : 'Escribe para cambiarlo'}
                 inputMode="numeric"
                 value={form.pin}
                 onChange={(e) => setForm({ ...form, pin: e.target.value })}
